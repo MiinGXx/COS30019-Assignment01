@@ -1,5 +1,7 @@
-def dfs_search(start, goals, walls, rows, cols):
-    """Perform Depth-First Search (DFS) to navigate the yellow square to one of the green cells."""
+import time
+
+def dfs_search_visual(start, goals, walls, rows, cols, update_square_callback):
+    """Perform Depth-First Search (DFS) with visual updates to show the yellow square's progression."""
     # Define movement directions (UP, LEFT, DOWN, RIGHT)
     directions = [(-1, 0), (0, -1), (1, 0), (0, 1)]  # UP, LEFT, DOWN, RIGHT
     direction_names = ["UP", "LEFT", "DOWN", "RIGHT"]
@@ -12,6 +14,12 @@ def dfs_search(start, goals, walls, rows, cols):
 
     while stack:
         (current_pos, moves) = stack.pop()
+
+        # Visualize the yellow square's current position
+        update_square_callback(current_pos)
+
+        # Pause to visualize the step-by-step search process
+        time.sleep(0.5)  # Add delay to slow down the animation for visualization
 
         # Check if current position is a goal state
         if current_pos in goals:
