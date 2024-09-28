@@ -1,7 +1,5 @@
-import time
-
-def dfs_search_visual(start, goals, walls, rows, cols, update_square_callback):
-    """Perform Depth-First Search (DFS) with visual updates to show the yellow square's progression."""
+def dfs_search_store_moves(start, goals, walls, rows, cols):
+    """Perform Depth-First Search (DFS) and store all moves step-by-step for later visualization."""
     # Define movement directions (UP, LEFT, DOWN, RIGHT)
     directions = [(-1, 0), (0, -1), (1, 0), (0, 1)]  # UP, LEFT, DOWN, RIGHT
     direction_names = ["UP", "LEFT", "DOWN", "RIGHT"]
@@ -12,19 +10,19 @@ def dfs_search_visual(start, goals, walls, rows, cols, update_square_callback):
     visited = set()  # Set to store visited nodes
     visited.add(start)
 
+    # Store each step of the DFS traversal
+    move_history = []  # Stores (position, direction) pairs
+
     while stack:
         (current_pos, moves) = stack.pop()
 
-        # Visualize the yellow square's current position
-        update_square_callback(current_pos)
-
-        # Pause to visualize the step-by-step search process
-        time.sleep(0.5)  # Add delay to slow down the animation for visualization
+        # Record the current position and moves so far
+        move_history.append((current_pos, moves))
 
         # Check if current position is a goal state
         if current_pos in goals:
             print(f"Goal reached at {current_pos} with moves: {moves}")
-            return moves
+            return move_history
 
         # Explore neighbors in the order: UP, LEFT, DOWN, RIGHT
         for i, (d_row, d_col) in enumerate(directions):
@@ -37,4 +35,4 @@ def dfs_search_visual(start, goals, walls, rows, cols, update_square_callback):
                 stack.append((next_pos, moves + [direction_names[i]]))
 
     print("No path to any goal was found.")
-    return None
+    return move_history
