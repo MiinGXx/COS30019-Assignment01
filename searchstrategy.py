@@ -108,10 +108,9 @@ def gbfs_search_store_moves(start, goals, walls, rows, cols, explore_callback=No
 
         visited.add(current_pos)
 
-        # Execute the visit callback if defined
         if visit_callback:
             visit_callback(current_pos)
-
+            
         # Check if the current position is a goal
         if current_pos in goals:
             return [(current_pos, moves)]  # Return the final path if goal is reached
@@ -130,3 +129,64 @@ def gbfs_search_store_moves(start, goals, walls, rows, cols, explore_callback=No
 
     print("No path to any goal was found.")
     return []
+
+def heuristic(a, b):
+
+    """Calculate the Manhattan distance heuristic."""
+    return abs(a[0] - b[0]) + abs(a[1] - b[1])
+
+def get_neighbors(pos, walls, rows, cols):
+    """Return valid neighbors for the given position."""
+    x, y = pos
+    neighbors = []
+    for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:  # Up, Down, Left, Right
+        neighbor = (x + dx, y + dy)
+        if 0 <= neighbor[0] < cols and 0 <= neighbor[1] < rows and neighbor not in walls:
+            neighbors.append(neighbor)
+    return neighbors
+
+def reconstruct_path(came_from, current):
+    """Reconstruct the path from start to goal."""
+    total_path = [current]
+    while current in came_from:
+        current = came_from[current]
+        total_path.append(current)
+    return total_path[::-1]  # Return reversed path
+
+def astar_search_store_moves(start, goals, walls, rows, cols, explore_callback=None, visit_callback=None):
+    """Perform A* search and store moves."""
+    open_set = []
+    heapq.heappush(open_set, (0, start))  # Priority queue
+    came_from = {}
+    
+    g_score = {start: 0}
+    f_score = {start: heuristic(start, goals[0])}  # Assuming a single goal for simplicity
+
+    move_history = []  # To store the positions explored
+    
+    while open_set:
+        current = heapq.heappop(open_set)[1]
+
+        if current in goals:
+            path = reconstruct_path(came_from, current)
+            return [(pos, 'goal') for pos in path]  # Return goal path with 'goal' marker
+        
+        if explore_callback:
+            explore_callback(current)
+            move_history.append((current, 'exploring'))  # Store explored nodes
+
+        for neighbor in get_neighbors(current, walls, rows, cols):
+            tentative_g_score = g_score[current] + 1  # Cost from start to neighbor
+
+            if tentative_g_score < g_score.get(neighbor, float('inf')):
+                came_from[neighbor] = current
+                g_score[neighbor] = tentative_g_score
+                f_score[neighbor] = tentative_g_score + heuristic(neighbor, goals[0])
+                
+                if neighbor not in [i[1] for i in open_set]:
+                    heapq.heappush(open_set, (f_score[neighbor], neighbor))
+
+            if visit_callback:
+                visit_callback(neighbor)
+
+    return move_history  # Return move history if no path found
