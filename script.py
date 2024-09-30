@@ -46,15 +46,15 @@ def parse_input_file(input_file):
 def main():
     if len(sys.argv) != 3:
         print("Usage: python script.py <input_file> <strategy>")
-        print("Strategies: 'DFS' for Depth-First Search or 'BFS' for Breadth-First Search")
+        print("Strategies: 'DFS' for Depth-First Search, 'BFS' for Breadth-First Search, or 'GBFS' for Greedy Best-First Search")
         sys.exit(1)
 
     input_file = sys.argv[1]
     strategy = sys.argv[2].strip().upper()  # Convert strategy to uppercase for consistency
 
     # Validate the strategy
-    if strategy not in ['DFS', 'BFS']:
-        print("Error: Invalid strategy. Please use 'DFS' or 'BFS'.")
+    if strategy not in ['DFS', 'BFS', 'GBFS']:
+        print("Error: Invalid strategy. Please use 'DFS', 'BFS', or 'GBFS'.")
         sys.exit(1)
 
     rows, cols, marker, goals, walls = parse_input_file(input_file)

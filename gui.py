@@ -1,6 +1,6 @@
 import tkinter as tk
 from grid import create_grid, create_yellow_square
-from searchstrategy import dfs_search_store_moves, bfs_search_store_moves
+from searchstrategy import dfs_search_store_moves, bfs_search_store_moves, gbfs_search_store_moves
 
 def update_square(new_pos, canvas, yellow_square):
     """Update the yellow square's position visually on the canvas."""
@@ -15,7 +15,7 @@ def update_square(new_pos, canvas, yellow_square):
     canvas.tag_raise(yellow_square)  # Ensure the yellow square stays on top
     canvas.update()  # Update the canvas to reflect the changes
 
-def highlight_exploring_node(pos, canvas, yellow_square):
+def highlight_exploring_node(pos, canvas, yellow_square, strategy):
     """Highlight the currently exploring cell and animate the yellow square."""
     col, row = pos
     cell_size = 50
@@ -27,22 +27,29 @@ def highlight_exploring_node(pos, canvas, yellow_square):
     # Animate the yellow square movement
     update_square(pos, canvas, yellow_square)
 
-    # Highlight the cell being explored
-    canvas.create_rectangle(x1, y1, x2, y2, fill="lightgreen", outline="black")
+    # Highlight the cell being explored based on the strategy
+    if strategy in ["BFS", "GBFS"]:
+        # Use light green for BFS and GBFS
+        canvas.create_rectangle(x1, y1, x2, y2, fill="lightgreen", outline="black")
+    elif strategy == "DFS":
+        # Use light green for exploring node in DFS
+        canvas.create_rectangle(x1, y1, x2, y2, fill="lightgreen", outline="black")
+
     canvas.tag_raise(yellow_square)  # Ensure the yellow square stays on top
     canvas.update()  # Update the GUI
     canvas.after(200)  # Delay for animation
 
-def highlight_visited_node(pos, canvas):
+def highlight_visited_node(pos, canvas, strategy):
     """Highlight the visited node in light blue."""
-    col, row = pos
-    cell_size = 50
-    x1 = col * cell_size
-    y1 = row * cell_size
-    x2 = x1 + cell_size
-    y2 = y1 + cell_size
-    canvas.create_rectangle(x1, y1, x2, y2, fill="lightblue", outline="black")
-    canvas.update()  # Update the GUI
+    if strategy == "DFS":
+        col, row = pos
+        cell_size = 50
+        x1 = col * cell_size
+        y1 = row * cell_size
+        x2 = x1 + cell_size
+        y2 = y1 + cell_size
+        canvas.create_rectangle(x1, y1, x2, y2, fill="lightblue", outline="black")
+        canvas.update()  # Update the GUI
 
 def create_grid_window(rows, cols, marker, goals, walls, strategy):
     """Create and display the Tkinter GUI window with grid, and allow user-controlled DFS navigation."""
@@ -62,12 +69,19 @@ def create_grid_window(rows, cols, marker, goals, walls, strategy):
     # Retrieve the full move history using the chosen search strategy
     if strategy == 'DFS':
         move_history = dfs_search_store_moves(marker, goals, walls, rows, cols,
-                                               explore_callback=lambda pos: highlight_exploring_node(pos, canvas, yellow_square),
-                                               visit_callback=lambda pos: highlight_visited_node(pos, canvas))
+                                               explore_callback=lambda pos: highlight_exploring_node(pos, canvas, yellow_square, strategy),
+                                               visit_callback=lambda pos: highlight_visited_node(pos, canvas, strategy))
     elif strategy == 'BFS':
         move_history = bfs_search_store_moves(marker, goals, walls, rows, cols,
-                                               explore_callback=lambda pos: highlight_exploring_node(pos, canvas, yellow_square),
-                                               visit_callback=lambda pos: highlight_visited_node(pos, canvas))
+                                               explore_callback=lambda pos: highlight_exploring_node(pos, canvas, yellow_square, strategy),
+                                               visit_callback=lambda pos: highlight_visited_node(pos, canvas, strategy))
+    elif strategy == 'GBFS':
+        move_history = gbfs_search_store_moves(marker, goals, walls, rows, cols,
+                                               explore_callback=lambda pos: highlight_exploring_node(pos, canvas, yellow_square, strategy),
+                                               visit_callback=lambda pos: highlight_visited_node(pos, canvas, strategy))
+    else:
+        print("Invalid strategy selected.")
+        return
         
     if not move_history:
         print("No valid moves found from start to goal.")

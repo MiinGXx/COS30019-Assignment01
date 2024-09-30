@@ -86,3 +86,47 @@ def bfs_search_store_moves(start_pos, goals, walls, rows, cols, explore_callback
 
     print("No path to any goal was found.")
     return []  # Return empty if no path is found
+
+def gbfs_search_store_moves(start, goals, walls, rows, cols, explore_callback=None, visit_callback=None):
+    """Greedy Best-First Search to find the path from start to goals using heuristic."""
+    def heuristic(a, b):
+        """Heuristic function: Use Manhattan distance between current position and goal."""
+        return abs(a[0] - b[0]) + abs(a[1] - b[1])
+
+    direction_names = ["UP", "DOWN", "LEFT", "RIGHT"]
+    directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]  # UP, DOWN, LEFT, RIGHT
+
+    priority_queue = []  # Priority queue (min-heap) for GBFS
+    visited = set()
+    heapq.heappush(priority_queue, (0, start, []))  # (heuristic_cost, current_position, moves)
+
+    while priority_queue:
+        _, current_pos, moves = heapq.heappop(priority_queue)
+
+        if current_pos in visited:
+            continue
+
+        visited.add(current_pos)
+
+        # Execute the visit callback if defined
+        if visit_callback:
+            visit_callback(current_pos)
+
+        # Check if the current position is a goal
+        if current_pos in goals:
+            return [(current_pos, moves)]  # Return the final path if goal is reached
+
+        # Explore neighbors
+        for i, (dr, dc) in enumerate(directions):
+            next_pos = (current_pos[0] + dr, current_pos[1] + dc)
+
+            # Check bounds and walls
+            if (0 <= next_pos[0] < cols and 0 <= next_pos[1] < rows and next_pos not in walls):
+                heuristic_cost = min(heuristic(next_pos, goal) for goal in goals)
+                heapq.heappush(priority_queue, (heuristic_cost, next_pos, moves + [direction_names[i]]))
+
+                if explore_callback:
+                    explore_callback(next_pos)
+
+    print("No path to any goal was found.")
+    return []
