@@ -105,7 +105,7 @@ def main():
             path, path_directions = dfs(start, goals, walls, rows, cols)
             if path:
                 print("\nPath to goal:")
-                for step, direction in zip(path, path_directions):
+                for step, direction in zip(path, path_directions): # Print each step and direction
                     print(f"{step} -> {direction}")
             else:
                 print("\nNo path found to any goal.")

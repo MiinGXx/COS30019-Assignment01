@@ -27,7 +27,7 @@ def create_yellow_square(canvas, col, row):
     y2 = y1 + square_size
     return canvas.create_rectangle(x1, y1, x2, y2, fill="yellow", outline="black")
 
-def animate_path(canvas, yellow_square, path, delay=500):
+def animate_path(canvas, yellow_square, path, delay=200):
     """Animate the yellow square along the path."""
     def move_yellow_square():
         if path:
