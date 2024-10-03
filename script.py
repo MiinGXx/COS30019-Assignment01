@@ -44,15 +44,17 @@ def parse_input_file(input_file):
         sys.exit(1)
 
 def main():
-    if len(sys.argv) != 2:
-        print("Usage: python main.py <input_file>")
+    if len(sys.argv) != 3:
+        print("Usage: python script.py <input_file> <method>")
         sys.exit(1)
 
     input_file = sys.argv[1]
+    method = sys.argv[2]  # The method (e.g., 'DFS')
+
     rows, cols, marker, goals, walls = parse_input_file(input_file)
 
-    # Create and display the grid in the GUI
-    create_grid_window(rows, cols, marker, goals, walls)
+    # Create and display the grid in the GUI, passing the search method
+    create_grid_window(rows, cols, marker, goals, walls, method)
 
 if __name__ == "__main__":
     main()

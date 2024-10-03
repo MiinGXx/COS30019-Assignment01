@@ -1,9 +1,13 @@
 import time
 
-def dfs(marker, goals, walls, rows, cols):
-    """Perform Depth-First Search (DFS) to find a path from marker to one of the goals."""
+def dfs(marker, goals, walls, rows, cols, canvas, cell_size):
+    """Perform Depth-First Search (DFS) with visualized search tree changes."""
     stack = [(marker, [marker])]  # Stack to manage DFS
     visited = set()  # Keep track of visited nodes
+
+    # Visualize the initial marker
+    highlight_cell(canvas, marker, cell_size, "yellow")
+    canvas.update()
 
     while stack:
         (current, path) = stack.pop()
@@ -12,6 +16,11 @@ def dfs(marker, goals, walls, rows, cols):
             continue
         visited.add(current)
 
+        # Highlight the current node as visited (e.g., in light gray)
+        highlight_cell(canvas, current, cell_size, "lightgray")
+        canvas.update()
+        time.sleep(0.2)  # Add a delay for better visualization
+
         # If we reached one of the goals, return the path
         if current in goals:
             return path
@@ -19,8 +28,12 @@ def dfs(marker, goals, walls, rows, cols):
         # Get the possible neighbors (UP, LEFT, DOWN, RIGHT)
         neighbors = get_neighbors(current, walls, rows, cols)
 
+        # Highlight the neighbors being expanded
         for neighbor in neighbors:
             if neighbor not in visited:
+                highlight_cell(canvas, neighbor, cell_size, "lightgreen")
+                canvas.update()
+                time.sleep(0.2)  # Add a delay for neighbor expansion visualization
                 stack.append((neighbor, path + [neighbor]))
 
     return None  # No path found
@@ -55,7 +68,6 @@ def highlight_cell(canvas, position, cell_size, color):
     x1, y1 = col * cell_size, row * cell_size
     x2, y2 = x1 + cell_size, y1 + cell_size
     canvas.create_rectangle(x1, y1, x2, y2, fill=color, outline="black")
-
 
 def highlight_final_path(canvas, path, cell_size):
     """Highlight the final path in light blue."""
