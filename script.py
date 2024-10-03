@@ -50,7 +50,7 @@ def main():
         sys.exit(1)
 
     input_file = sys.argv[1] # Input file containing the grid data
-    method = sys.argv[2] # Search method to use (e.g., DFS, BFS, etc.)
+    method = sys.argv[2].upper() # Search method to use (e.g., DFS, BFS, etc.)
 
     # Parse the input file
     rows, cols, marker, goals, walls = parse_input_file(input_file)
