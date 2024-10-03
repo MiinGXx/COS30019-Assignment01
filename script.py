@@ -2,6 +2,7 @@ import sys
 from gui import create_grid_window
 from wall import add_wall_coordinates
 import re
+from searchstrategy import dfs
 
 def parse_input_file(input_file):
     """Parse the input file to extract grid dimensions, marker, goals, and walls."""
@@ -48,12 +49,13 @@ def main():
         print("Usage: python script.py <input_file> <method>")
         sys.exit(1)
 
-    input_file = sys.argv[1]
-    method = sys.argv[2]  # The method (e.g., 'DFS')
+    input_file = sys.argv[1] # Input file containing the grid data
+    method = sys.argv[2] # Search method to use (e.g., DFS, BFS, etc.)
 
+    # Parse the input file
     rows, cols, marker, goals, walls = parse_input_file(input_file)
 
-    # Create and display the grid in the GUI, passing the search method
+    # Create and display the grid in the GUI
     create_grid_window(rows, cols, marker, goals, walls, method)
 
 if __name__ == "__main__":

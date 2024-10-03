@@ -1,10 +1,11 @@
 import tkinter as tk
 from grid import create_grid, create_yellow_square, animate_path
-from searchstrategy import dfs
+from searchstrategy import dfs, bfs
 
 # Dictionary to map method names to their respective functions
 SEARCH_METHODS = {
-    "DFS": dfs
+    "DFS": dfs,
+    "BFS": bfs
     # You can add more methods here, like "BFS": bfs, "GBFS": gbfs, etc.
 }
 

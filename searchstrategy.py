@@ -1,5 +1,6 @@
 import time
 
+"""         DEPTH-FIRST SEARCH         """
 def dfs(marker, goals, walls, rows, cols, canvas, cell_size):
     """Perform Depth-First Search (DFS) with visualized search tree changes."""
     stack = [(marker, [marker])]  # Stack to manage DFS
@@ -38,6 +39,46 @@ def dfs(marker, goals, walls, rows, cols, canvas, cell_size):
 
     return None  # No path found
 
+"""         BREADTH-FIRST SEARCH         """
+def bfs(marker, goals, walls, rows, cols, canvas, cell_size):
+    """Perform Breadth-First Search (BFS) with visualized search tree changes."""
+    queue = [(marker, [marker])]  # Queue to manage BFS
+    visited = set()  # Keep track of visited nodes
+
+    # Visualize the initial marker
+    highlight_cell(canvas, marker, cell_size, "yellow")
+    canvas.update()
+
+    while queue:
+        (current, path) = queue.pop(0)
+
+        if current in visited:
+            continue
+        visited.add(current)
+
+        # Highlight the current node as visited (e.g., in light gray)
+        highlight_cell(canvas, current, cell_size, "lightgray")
+        canvas.update()
+        time.sleep(0.1)  # Add a delay for better visualization
+
+        # If we reached one of the goals, return the path
+        if current in goals:
+            return path
+
+        # Get the possible neighbors (UP, LEFT, DOWN, RIGHT)
+        neighbors = get_neighbors_inverted(current, walls, rows, cols)
+
+        # Highlight the neighbors being expanded
+        for neighbor in neighbors:
+            if neighbor not in visited:
+                highlight_cell(canvas, neighbor, cell_size, "lightgreen")
+                canvas.update()
+                time.sleep(0.1)  # Add a delay for neighbor expansion visualization
+                queue.append((neighbor, path + [neighbor]))
+
+    return None  # No path found
+
+
 def get_neighbors(cell, walls, rows, cols):
     """Get valid neighbors of a cell (UP, LEFT, DOWN, RIGHT) that are not walls."""
     col, row = cell
@@ -57,6 +98,27 @@ def get_neighbors(cell, walls, rows, cols):
     # UP
     if row > 0 and (col, row - 1) not in walls:
         neighbors.append((col, row - 1))
+
+    return neighbors
+
+def get_neighbors_inverted(cell, walls, rows, cols):
+    """Get valid neighbors of a cell (UP, LEFT, DOWN, RIGHT) that are not walls."""
+    col, row = cell
+    neighbors = []
+
+    # Add neighbors in reverse order of the desired priority (UP, DOWN, LEFT, RIGHT).
+    # UP
+    if row > 0 and (col, row - 1) not in walls:
+        neighbors.append((col, row - 1))
+    # LEFT
+    if col > 0 and (col - 1, row) not in walls:
+        neighbors.append((col - 1, row))
+    # DOWN
+    if row < rows - 1 and (col, row + 1) not in walls:
+        neighbors.append((col, row + 1))
+    # RIGHT
+    if col < cols - 1 and (col + 1, row) not in walls:
+        neighbors.append((col + 1, row))
 
     return neighbors
 
