@@ -1,10 +1,12 @@
 import time
+import heapq
 
 """         DEPTH-FIRST SEARCH         """
 def dfs(marker, goals, walls, rows, cols, canvas, cell_size):
-    """Perform Depth-First Search (DFS) with visualized search tree changes."""
+    """Perform Depth-First Search (DFS) with visualized search tree changes and node tracking."""
     stack = [(marker, [marker])]  # Stack to manage DFS
     visited = set()  # Keep track of visited nodes
+    node_count = 0  # To track the number of nodes created
 
     # Visualize the initial marker
     highlight_cell(canvas, marker, cell_size, "yellow")
@@ -16,15 +18,17 @@ def dfs(marker, goals, walls, rows, cols, canvas, cell_size):
         if current in visited:
             continue
         visited.add(current)
+        node_count += 1  # Count the node
 
-        # Highlight the current node as visited (e.g., in light gray)
+        # Highlight the current node as visited
         highlight_cell(canvas, current, cell_size, "lightgray")
         canvas.update()
         time.sleep(0.2)  # Add a delay for better visualization
 
         # If we reached one of the goals, return the path
         if current in goals:
-            return path
+            directions = convert_path_to_directions(path)
+            return path, node_count, directions
 
         # Get the possible neighbors (UP, LEFT, DOWN, RIGHT)
         neighbors = get_neighbors(current, walls, rows, cols)
@@ -37,13 +41,16 @@ def dfs(marker, goals, walls, rows, cols, canvas, cell_size):
                 time.sleep(0.2)  # Add a delay for neighbor expansion visualization
                 stack.append((neighbor, path + [neighbor]))
 
-    return None  # No path found
+    return None, node_count, []  # No path found
+
+
 
 """         BREADTH-FIRST SEARCH         """
 def bfs(marker, goals, walls, rows, cols, canvas, cell_size):
-    """Perform Breadth-First Search (BFS) with visualized search tree changes."""
+    """Perform Breadth-First Search (BFS) with visualized search tree changes and node tracking."""
     queue = [(marker, [marker])]  # Queue to manage BFS
     visited = set()  # Keep track of visited nodes
+    node_count = 0  # To track the number of nodes created
 
     # Visualize the initial marker
     highlight_cell(canvas, marker, cell_size, "yellow")
@@ -55,15 +62,17 @@ def bfs(marker, goals, walls, rows, cols, canvas, cell_size):
         if current in visited:
             continue
         visited.add(current)
+        node_count += 1  # Count the node
 
-        # Highlight the current node as visited (e.g., in light gray)
+        # Highlight the current node as visited
         highlight_cell(canvas, current, cell_size, "lightgray")
         canvas.update()
         time.sleep(0.1)  # Add a delay for better visualization
 
         # If we reached one of the goals, return the path
         if current in goals:
-            return path
+            directions = convert_path_to_directions(path)
+            return path, node_count, directions
 
         # Get the possible neighbors (UP, LEFT, DOWN, RIGHT)
         neighbors = get_neighbors_inverted(current, walls, rows, cols)
@@ -76,7 +85,61 @@ def bfs(marker, goals, walls, rows, cols, canvas, cell_size):
                 time.sleep(0.1)  # Add a delay for neighbor expansion visualization
                 queue.append((neighbor, path + [neighbor]))
 
-    return None  # No path found
+    return None, node_count, []  # No path found 
+
+
+"""         GREEDY BEST-FIRST SEARCH (GBFS)         """
+def gbfs(marker, goals, walls, rows, cols, canvas, cell_size):
+    """Perform Greedy Best-First Search (GBFS) with visualized search tree changes and node tracking."""
+    # Priority queue (heap) with (heuristic, current_position, path) tuples
+    priority_queue = [(heuristic(marker, goals), marker, [marker])]
+    visited = set()  # Keep track of visited nodes
+    node_count = 0  # To track the number of nodes created
+
+    # Visualize the initial marker
+    highlight_cell(canvas, marker, cell_size, "yellow")
+    canvas.update()
+
+    while priority_queue:
+        _, current, path = heapq.heappop(priority_queue)
+
+        if current in visited:
+            continue
+        visited.add(current)
+        node_count += 1  # Count the node
+
+        # Highlight the current node as visited
+        highlight_cell(canvas, current, cell_size, "lightgray")
+        canvas.update()
+        time.sleep(0.2)  # Add a delay for better visualization
+
+        # If we reached one of the goals, return the path
+        if current in goals:
+            directions = convert_path_to_directions(path)
+            return path, node_count, directions
+
+        # Get the possible neighbors (UP, LEFT, DOWN, RIGHT) using get_neighbors_inverted for correct priority
+        neighbors = get_neighbors_inverted(current, walls, rows, cols)
+
+        # Highlight the neighbors being expanded
+        for neighbor in neighbors:
+            if neighbor not in visited:
+                # Introduce tie-breaking by considering the direction priority if heuristic values are the same
+                heapq.heappush(priority_queue, (heuristic(neighbor, goals), neighbor, path + [neighbor]))
+                highlight_cell(canvas, neighbor, cell_size, "lightgreen")
+                canvas.update()
+                time.sleep(0.2)  # Add a delay for neighbor expansion visualization
+
+    return None, node_count, []  # No path found
+
+def heuristic(cell, goals):
+    """Calculate the Manhattan distance from the current cell to the closest goal."""
+    col, row = cell
+    return min(abs(goal[0] - col) + abs(goal[1] - row) for goal in goals)
+
+
+
+
 
 
 def get_neighbors(cell, walls, rows, cols):
@@ -84,8 +147,6 @@ def get_neighbors(cell, walls, rows, cols):
     col, row = cell
     neighbors = []
 
-    # Add neighbors in reverse order of the desired priority (RIGHT, DOWN, LEFT, UP).
-    
     # RIGHT
     if col < cols - 1 and (col + 1, row) not in walls:
         neighbors.append((col + 1, row))
@@ -106,7 +167,6 @@ def get_neighbors_inverted(cell, walls, rows, cols):
     col, row = cell
     neighbors = []
 
-    # Add neighbors in reverse order of the desired priority (UP, DOWN, LEFT, RIGHT).
     # UP
     if row > 0 and (col, row - 1) not in walls:
         neighbors.append((col, row - 1))
@@ -122,7 +182,23 @@ def get_neighbors_inverted(cell, walls, rows, cols):
 
     return neighbors
 
-
+def convert_path_to_directions(path):
+    """Convert a path of coordinates to human-readable directions (up, down, left, right)."""
+    directions = []
+    for i in range(1, len(path)):
+        current = path[i]
+        previous = path[i - 1]
+        if current[0] == previous[0]:  # Same column
+            if current[1] == previous[1] + 1:
+                directions.append("down")
+            elif current[1] == previous[1] - 1:
+                directions.append("up")
+        elif current[1] == previous[1]:  # Same row
+            if current[0] == previous[0] + 1:
+                directions.append("right")
+            elif current[0] == previous[0] - 1:
+                directions.append("left")
+    return directions
 
 def highlight_cell(canvas, position, cell_size, color):
     """Highlight the cell at the given position."""
