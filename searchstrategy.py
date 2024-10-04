@@ -23,7 +23,7 @@ def dfs(marker, goals, walls, rows, cols, canvas, cell_size):
         # Highlight the current node as visited
         highlight_cell(canvas, current, cell_size, "lightgray")
         canvas.update()
-        time.sleep(0.2)  # Add a delay for better visualization
+        time.sleep(0.1)  # Add a delay for better visualization
 
         # If we reached one of the goals, return the path
         if current in goals:
@@ -38,7 +38,7 @@ def dfs(marker, goals, walls, rows, cols, canvas, cell_size):
             if neighbor not in visited:
                 highlight_cell(canvas, neighbor, cell_size, "lightgreen")
                 canvas.update()
-                time.sleep(0.2)  # Add a delay for neighbor expansion visualization
+                time.sleep(0.1)  # Add a delay for neighbor expansion visualization
                 stack.append((neighbor, path + [neighbor]))
 
     return None, node_count, []  # No path found

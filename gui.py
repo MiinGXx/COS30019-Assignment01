@@ -41,9 +41,8 @@ def create_grid_window(rows, cols, marker, goals, walls, method, cell_size=50):
 
         # Output the result in the desired format
         print(f"{method} method")
-        print(f"Goal reached: {path[-1]}")
-        print(f"Number of nodes created: {node_count}")
-        print(f"Path directions: {' '.join(directions)}")
+        print(f"<Node {path[-1]}> {node_count}")
+        print(f"[{' , '.join(directions)}]")
     else:
         print("No path to the goal was found.")
 
