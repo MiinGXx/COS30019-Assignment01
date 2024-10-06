@@ -90,106 +90,166 @@ def bfs(marker, goals, walls, rows, cols, canvas, cell_size):
 
 
 """         GREEDY BEST-FIRST SEARCH (GBFS)         """
+# Heuristic function (Manhattan distance)
+def manhattan_distance(node, goal):
+    """Calculate the Manhattan distance from the current node to the goal."""
+    return abs(node[0] - goal[0]) + abs(node[1] - goal[1])
+
+# Greedy Best-First Search (GBFS)
 def gbfs(marker, goals, walls, rows, cols, canvas, cell_size):
-    """Perform Greedy Best-First Search (GBFS) with visualized search tree changes and node tracking."""
-    # Priority queue (heap) with (heuristic, current_position, path) tuples
-    priority_queue = [(heuristic(marker, goals), marker, [marker])]
-    visited = set()  # Keep track of visited nodes
-    node_count = 0  # To track the number of nodes created
+    """Greedy Best-First Search implementation with visualization."""
+    open_list = []
+    heapq.heappush(open_list, (0, marker))  # priority queue with heuristic values
+    came_from = {marker: None}
+    visited = set()
+    visited.add(marker)
+    node_count = 0
+    directions = []
 
     # Visualize the initial marker
     highlight_cell(canvas, marker, cell_size, "yellow")
     canvas.update()
+    time.sleep(0.5)  # Initial delay for better visibility
 
-    while priority_queue:
-        _, current, path = heapq.heappop(priority_queue)
-
-        if current in visited:
-            continue
-        visited.add(current)
-        node_count += 1  # Count the node
+    while open_list:
+        _, current = heapq.heappop(open_list)
+        node_count += 1
 
         # Highlight the current node as visited
         highlight_cell(canvas, current, cell_size, "lightgray")
         canvas.update()
-        time.sleep(0.1)  # Add a delay for better visualization
+        time.sleep(0.1)  # Delay for animation effect
 
-        # If we reached one of the goals, return the path
         if current in goals:
-            directions = convert_path_to_directions(path)
+            # Backtrack to find the path
+            path = []
+            while current:
+                path.append(current)
+                current = came_from[current]
+            path.reverse()
+
+            # Convert path to directions (up, left, down, right)
+            directions = []
+            for i in range(1, len(path)):
+                x1, y1 = path[i - 1]
+                x2, y2 = path[i]
+                if x2 == x1 and y2 == y1 - 1:
+                    directions.append("up")
+                elif x2 == x1 and y2 == y1 + 1:
+                    directions.append("down")
+                elif x2 == x1 - 1 and y2 == y1:
+                    directions.append("left")
+                elif x2 == x1 + 1 and y2 == y1:
+                    directions.append("right")
+
+            # Highlight the final path in blue
+            highlight_final_path(canvas, path, cell_size)
             return path, node_count, directions
 
-        # Get the possible neighbors (UP, LEFT, DOWN, RIGHT) using get_neighbors_inverted for correct priority
-        neighbors = get_neighbors_inverted(current, walls, rows, cols)
-
-        # Highlight the neighbors being expanded
+        # Explore neighbors (prioritize based on heuristic)
+        neighbors = get_neighbors(current, walls, rows, cols)
         for neighbor in neighbors:
             if neighbor not in visited:
-                # Introduce tie-breaking by considering the direction priority if heuristic values are the same
-                heapq.heappush(priority_queue, (heuristic(neighbor, goals), neighbor, path + [neighbor]))
+                visited.add(neighbor)
+                heapq.heappush(open_list, (manhattan_distance(neighbor, goals[0]), neighbor))
+                came_from[neighbor] = current
+                
+                # Highlight the neighbors being considered
                 highlight_cell(canvas, neighbor, cell_size, "lightgreen")
                 canvas.update()
-                time.sleep(0.1)  # Add a delay for neighbor expansion visualization
+                time.sleep(0.1)  # Delay for neighbor visualization
 
-    return None, node_count, []  # No path found
+    # If no path was found
+    print("No path to the goal was found.")
+    return None, node_count, directions  # No path found
 
-def heuristic(cell, goals):
-    """Calculate Manhattan distance heuristic from current cell to nearest goal."""
-    col, row = cell
-    return min(abs(goal_col - col) + abs(goal_row - row) for goal_col, goal_row in goals)
+# Helper function to get neighbors
+def get_neighbors(node, walls, rows, cols):
+    """Get valid neighbors of a node, excluding walls and out-of-bound cells."""
+    neighbors = []
+    x, y = node
+    possible_moves = [(x, y - 1), (x, y + 1), (x - 1, y), (x + 1, y)]  # up, down, left, right
+
+    for nx, ny in possible_moves:
+        if 0 <= nx < cols and 0 <= ny < rows and (nx, ny) not in walls:
+            neighbors.append((nx, ny))
+
+    return neighbors
+
 
 
 
 """         A* SEARCH         """
 def a_star(marker, goals, walls, rows, cols, canvas, cell_size):
-    """Perform A* (A-Star) Search with visualized search tree changes and node tracking."""
-    # Priority queue (heap) with (total_cost, cost_so_far, current_position, path) tuples
-    priority_queue = [(heuristic(marker, goals), 0, marker, [marker])]
+    """A* search algorithm implementation with visualized visited nodes."""
+    open_list = []  # Priority queue for nodes to be evaluated
+    heapq.heappush(open_list, (0, marker))  # Push the starting marker with a priority of 0
+    came_from = {}  # To track the path
+    g_score = {marker: 0}  # Cost from start to current node
+    f_score = {marker: manhattan_distance(marker, goals[0])}  # Estimated total cost from start to goal
     visited = set()  # Keep track of visited nodes
     node_count = 0  # To track the number of nodes created
+    directions = []  # To store directions for the final path
 
-    # Visualize the initial marker
-    highlight_cell(canvas, marker, cell_size, "yellow")
-    canvas.update()
+    while open_list:
+        # Get the node with the lowest f_score
+        current = heapq.heappop(open_list)[1]
+        node_count += 1
 
-    while priority_queue:
-        total_cost, cost_so_far, current, path = heapq.heappop(priority_queue)
-
-        if current in visited:
-            continue
-        visited.add(current)
-        node_count += 1  # Count the node
-
-        # Highlight the current node as visited
-        highlight_cell(canvas, current, cell_size, "lightgray")
-        canvas.update()
+        # Highlight the current node as visited (in light gray)
+        highlight_cell(canvas, current, cell_size, "lightgray")  # Mark current node as visited
+        canvas.update()  # Update the canvas for animation
         time.sleep(0.1)  # Add a delay for better visualization
 
-        # If we reached one of the goals, return the path
+        # Check if the current node is a goal
         if current in goals:
-            directions = convert_path_to_directions(path)
-            return path, node_count, directions
+            # Backtrack to find the path
+            path = []
+            while current:
+                path.append(current)
+                current = came_from.get(current)
+            path.reverse()  # Reverse the path to get it from start to goal
 
-        # Get the possible neighbors (UP, LEFT, DOWN, RIGHT)
-        neighbors = get_neighbors_inverted(current, walls, rows, cols)
+            # Convert path to directions (up, left, down, right)
+            directions = []
+            for i in range(1, len(path)):
+                x1, y1 = path[i - 1]
+                x2, y2 = path[i]
+                if x2 == x1 and y2 == y1 - 1:
+                    directions.append("up")
+                elif x2 == x1 and y2 == y1 + 1:
+                    directions.append("down")
+                elif x2 == x1 - 1 and y2 == y1:
+                    directions.append("left")
+                elif x2 == x1 + 1 and y2 == y1:
+                    directions.append("right")
 
-        # Highlight the neighbors being expanded
+            return path, node_count, directions  # Return the found path
+
+        # Explore neighbors
+        neighbors = get_neighbors(current, walls, rows, cols)
         for neighbor in neighbors:
-            if neighbor not in visited:
-                # Calculate the new cost to reach the neighbor (cost_so_far + 1)
-                new_cost = cost_so_far + 1
-                # Heuristic for the neighbor
-                h = heuristic(neighbor, goals)
-                # Total cost for A* (f = g + h)
-                f = new_cost + h
-                heapq.heappush(priority_queue, (f, new_cost, neighbor, path + [neighbor]))
+            tentative_g_score = g_score[current] + 1  # Assume cost to neighbor is 1
 
-                # Visualize neighbor expansion
-                highlight_cell(canvas, neighbor, cell_size, "lightgreen")
-                canvas.update()
-                time.sleep(0.1)  # Add a delay for neighbor expansion visualization
+            # If the neighbor is not visited or found a better path
+            if tentative_g_score < g_score.get(neighbor, float('inf')):
+                came_from[neighbor] = current  # Record the best path to the neighbor
+                g_score[neighbor] = tentative_g_score
+                f_score[neighbor] = tentative_g_score + manhattan_distance(neighbor, goals[0])
 
-    return None, node_count, []  # No path found
+                # If the neighbor is not already in the open list, add it
+                if neighbor not in visited:
+                    visited.add(neighbor)
+                    heapq.heappush(open_list, (f_score[neighbor], neighbor))
+
+                # Highlight the neighbor for visualization
+                highlight_cell(canvas, neighbor, cell_size, "lightgreen")  # Optional: visualize neighbors
+                canvas.update()  # Update the canvas for animation
+                time.sleep(0.1)  # Add a delay for better visualization
+
+    print("No path to the goal was found.")
+    return None, node_count, directions  # No path found
+
 
 
 def get_neighbors(cell, walls, rows, cols):
@@ -259,5 +319,5 @@ def highlight_cell(canvas, position, cell_size, color):
 
 def highlight_final_path(canvas, path, cell_size):
     """Highlight the final path in light blue."""
-    for position in path:
+    for position in path: 
         highlight_cell(canvas, position, cell_size, "lightblue")
