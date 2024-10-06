@@ -89,6 +89,8 @@ def bfs(marker, goals, walls, rows, cols, canvas, cell_size):
 
 
 
+
+
 """         GREEDY BEST-FIRST SEARCH (GBFS)         """
 # Heuristic function (Manhattan distance)
 def manhattan_distance(node, goal):
@@ -163,18 +165,7 @@ def gbfs(marker, goals, walls, rows, cols, canvas, cell_size):
     print("No path to the goal was found.")
     return None, node_count, directions  # No path found
 
-# Helper function to get neighbors
-def get_neighbors(node, walls, rows, cols):
-    """Get valid neighbors of a node, excluding walls and out-of-bound cells."""
-    neighbors = []
-    x, y = node
-    possible_moves = [(x, y - 1), (x, y + 1), (x - 1, y), (x + 1, y)]  # up, down, left, right
 
-    for nx, ny in possible_moves:
-        if 0 <= nx < cols and 0 <= ny < rows and (nx, ny) not in walls:
-            neighbors.append((nx, ny))
-
-    return neighbors
 
 
 
