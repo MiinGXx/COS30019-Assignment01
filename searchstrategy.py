@@ -1,12 +1,84 @@
 import time
 import heapq
+import networkx as nx
+import matplotlib.pyplot as plt
+
+def hierarchy_pos(G, root=None, width=1., vert_gap=0.2, vert_loc=0, xcenter=0.5):
+    """
+    If the graph is a tree, this will return the positions to plot this in a hierarchical layout.
+    Arguments:
+        G (networkx.DiGraph): The graph to plot.
+        root (tuple): The root node for the tree (should be the starting grid coordinate).
+        width (float): Horizontal space allocated for the layout.
+        vert_gap (float): Vertical gap between levels of the tree.
+        vert_loc (float): The vertical location of the root.
+        xcenter (float): The horizontal location of the root.
+    Returns:
+        pos (dict): A dictionary of positions keyed by node.
+    """
+    pos = _hierarchy_pos(G, root, width, vert_gap, vert_loc, xcenter)
+    return pos
+
+def _hierarchy_pos(G, node, width=1., vert_gap=0.2, vert_loc=0, xcenter=0.5, pos=None, parent=None, parsed=[]):
+    """
+    Helper function for hierarchy_pos.
+    """
+    if pos is None:
+        pos = {node: (xcenter, vert_loc)}
+    else:
+        pos[node] = (xcenter, vert_loc)
+        
+    children = list(G.neighbors(node))
+    
+    if not isinstance(G, nx.DiGraph):
+        raise TypeError("The graph must be a directed graph.")
+    
+    if not children:
+        return pos
+    
+    dx = width / max(1, len(children))  # Adjust horizontal space based on the number of children
+    nextx = xcenter - width / 2 - dx / 2  # Adjust x position to center the children
+    
+    for child in children:
+        nextx += dx
+        pos = _hierarchy_pos(G, child, width=dx, vert_gap=vert_gap, vert_loc=vert_loc - vert_gap, xcenter=nextx, pos=pos, parent=node, parsed=parsed)
+    
+    return pos
+
+def render_search_tree(parent_dict):
+    """Render the search tree based on parent-child relationships."""
+    G = nx.DiGraph()  # Create a directed graph
+
+    # Add edges based on parent-child relationships
+    for child, parent in parent_dict.items():
+        if parent is not None:
+            G.add_edge(parent, child)
+
+    # Get the root of the tree (starting node) - usually the marker/agent
+    root = [node for node in parent_dict if parent_dict[node] is None][0]
+
+    # Use the custom hierarchy layout for the tree
+    pos = hierarchy_pos(G, root, width=2.0, vert_gap=0.5)  # Increase width and vertical gap for more space
+
+    # Create a larger plot to accommodate more space
+    plt.figure(figsize=(12, 8))  # Adjust the figure size (width, height)
+
+    # Draw the tree with the hierarchical layout
+    nx.draw(G, pos, with_labels=True, node_size=300, node_color="lightblue", font_size=8, font_weight="bold", arrows=True)
+
+    plt.title("Search Tree (Top-to-Bottom Layout)")
+    plt.show()
+
+
+
 
 """         DEPTH-FIRST SEARCH         """
 def dfs(marker, goals, walls, rows, cols, canvas, cell_size):
-    """Perform Depth-First Search (DFS) with visualized search tree changes and node tracking."""
-    stack = [(marker, [marker])]  # Stack to manage DFS
-    visited = set()  # Keep track of visited nodes
-    node_count = 0  # To track the number of nodes created
+    stack = [(marker, [marker])]
+    visited = set()
+    parent = {}
+    parent[marker] = None  # Root node has no parent
+    node_count = 0
 
     # Visualize the initial marker
     highlight_cell(canvas, marker, cell_size, "yellow")
@@ -18,38 +90,40 @@ def dfs(marker, goals, walls, rows, cols, canvas, cell_size):
         if current in visited:
             continue
         visited.add(current)
-        node_count += 1  # Count the node
+        node_count += 1
 
         # Highlight the current node as visited
         highlight_cell(canvas, current, cell_size, "lightgray")
         canvas.update()
         time.sleep(0.1)  # Add a delay for better visualization
 
-        # If we reached one of the goals, return the path
         if current in goals:
             directions = convert_path_to_directions(path)
-            return path, node_count, directions
+            return path, node_count, directions, parent  # Return parent dict
 
-        # Get the possible neighbors (UP, LEFT, DOWN, RIGHT)
         neighbors = get_neighbors(current, walls, rows, cols)
-
-        # Highlight the neighbors being expanded
         for neighbor in neighbors:
             if neighbor not in visited:
+                stack.append((neighbor, path + [neighbor]))
+                parent[neighbor] = current  # Track parent
+
+                # Highlight the neighbors being expanded
                 highlight_cell(canvas, neighbor, cell_size, "lightgreen")
                 canvas.update()
                 time.sleep(0.1)  # Add a delay for neighbor expansion visualization
-                stack.append((neighbor, path + [neighbor]))
 
-    return None, node_count, []  # No path found
+    return None, node_count, [], parent  # No path found, return parent dictionary anyway
+
 
 
 
 """         BREADTH-FIRST SEARCH         """
 def bfs(marker, goals, walls, rows, cols, canvas, cell_size):
     """Perform Breadth-First Search (BFS) with visualized search tree changes and node tracking."""
-    queue = [(marker, [marker])]  # Queue to manage BFS
+    queue = [(marker, [marker])]  # Queue to manage BFS (FIFO)
     visited = set()  # Keep track of visited nodes
+    parent = {}  # Track parent-child relationships
+    parent[marker] = None  # Root node has no parent
     node_count = 0  # To track the number of nodes created
 
     # Visualize the initial marker
@@ -57,7 +131,7 @@ def bfs(marker, goals, walls, rows, cols, canvas, cell_size):
     canvas.update()
 
     while queue:
-        (current, path) = queue.pop(0)
+        (current, path) = queue.pop(0)  # Dequeue (FIFO)
 
         if current in visited:
             continue
@@ -69,10 +143,10 @@ def bfs(marker, goals, walls, rows, cols, canvas, cell_size):
         canvas.update()
         time.sleep(0.1)  # Add a delay for better visualization
 
-        # If we reached one of the goals, return the path
+        # If we reached one of the goals, return the path and parent-child relationships
         if current in goals:
             directions = convert_path_to_directions(path)
-            return path, node_count, directions
+            return path, node_count, directions, parent  # Return parent dict
 
         # Get the possible neighbors (UP, LEFT, DOWN, RIGHT)
         neighbors = get_neighbors_inverted(current, walls, rows, cols)
@@ -80,13 +154,13 @@ def bfs(marker, goals, walls, rows, cols, canvas, cell_size):
         # Highlight the neighbors being expanded
         for neighbor in neighbors:
             if neighbor not in visited:
+                queue.append((neighbor, path + [neighbor]))  # Enqueue neighbors
+                parent[neighbor] = current  # Track the parent
                 highlight_cell(canvas, neighbor, cell_size, "lightgreen")
                 canvas.update()
                 time.sleep(0.1)  # Add a delay for neighbor expansion visualization
-                queue.append((neighbor, path + [neighbor]))
 
-    return None, node_count, []  # No path found 
-
+    return None, node_count, [], parent  # Return parent-child relationships even if no path found
 
 
 
@@ -102,7 +176,7 @@ def gbfs(marker, goals, walls, rows, cols, canvas, cell_size):
     """Greedy Best-First Search implementation with visualization."""
     open_list = []
     heapq.heappush(open_list, (0, marker))  # priority queue with heuristic values
-    came_from = {marker: None}
+    came_from = {marker: None}  # Track parent-child relationships
     visited = set()
     visited.add(marker)
     node_count = 0
@@ -131,22 +205,11 @@ def gbfs(marker, goals, walls, rows, cols, canvas, cell_size):
             path.reverse()
 
             # Convert path to directions (up, left, down, right)
-            directions = []
-            for i in range(1, len(path)):
-                x1, y1 = path[i - 1]
-                x2, y2 = path[i]
-                if x2 == x1 and y2 == y1 - 1:
-                    directions.append("up")
-                elif x2 == x1 and y2 == y1 + 1:
-                    directions.append("down")
-                elif x2 == x1 - 1 and y2 == y1:
-                    directions.append("left")
-                elif x2 == x1 + 1 and y2 == y1:
-                    directions.append("right")
+            directions = convert_path_to_directions(path)
 
             # Highlight the final path in blue
             highlight_final_path(canvas, path, cell_size)
-            return path, node_count, directions
+            return path, node_count, directions, came_from  # Return parent-child relationships
 
         # Explore neighbors (prioritize based on heuristic)
         neighbors = get_neighbors(current, walls, rows, cols)
@@ -154,16 +217,16 @@ def gbfs(marker, goals, walls, rows, cols, canvas, cell_size):
             if neighbor not in visited:
                 visited.add(neighbor)
                 heapq.heappush(open_list, (manhattan_distance(neighbor, goals[0]), neighbor))
-                came_from[neighbor] = current
+                came_from[neighbor] = current  # Track parent-child relationship
                 
                 # Highlight the neighbors being considered
                 highlight_cell(canvas, neighbor, cell_size, "lightgreen")
                 canvas.update()
                 time.sleep(0.1)  # Delay for neighbor visualization
 
-    # If no path was found
     print("No path to the goal was found.")
-    return None, node_count, directions  # No path found
+    return None, node_count, directions, came_from  # No path found, return parent dict
+
 
 
 
@@ -175,12 +238,12 @@ def a_star(marker, goals, walls, rows, cols, canvas, cell_size):
     """A* search algorithm implementation with visualized visited nodes."""
     open_list = []  # Priority queue for nodes to be evaluated
     heapq.heappush(open_list, (0, marker))  # Push the starting marker with a priority of 0
-    came_from = {}  # To track the path
+    came_from = {marker: None}  # Track parent-child relationships
     g_score = {marker: 0}  # Cost from start to current node
     f_score = {marker: manhattan_distance(marker, goals[0])}  # Estimated total cost from start to goal
-    visited = set()  # Keep track of visited nodes
-    node_count = 0  # To track the number of nodes created
-    directions = []  # To store directions for the final path
+    visited = set()
+    node_count = 0
+    directions = []
 
     while open_list:
         # Get the node with the lowest f_score
@@ -188,7 +251,7 @@ def a_star(marker, goals, walls, rows, cols, canvas, cell_size):
         node_count += 1
 
         # Highlight the current node as visited (in light gray)
-        highlight_cell(canvas, current, cell_size, "lightgray")  # Mark current node as visited
+        highlight_cell(canvas, current, cell_size, "lightgray")
         canvas.update()  # Update the canvas for animation
         time.sleep(0.1)  # Add a delay for better visualization
 
@@ -199,23 +262,11 @@ def a_star(marker, goals, walls, rows, cols, canvas, cell_size):
             while current:
                 path.append(current)
                 current = came_from.get(current)
-            path.reverse()  # Reverse the path to get it from start to goal
+            path.reverse()
 
             # Convert path to directions (up, left, down, right)
-            directions = []
-            for i in range(1, len(path)):
-                x1, y1 = path[i - 1]
-                x2, y2 = path[i]
-                if x2 == x1 and y2 == y1 - 1:
-                    directions.append("up")
-                elif x2 == x1 and y2 == y1 + 1:
-                    directions.append("down")
-                elif x2 == x1 - 1 and y2 == y1:
-                    directions.append("left")
-                elif x2 == x1 + 1 and y2 == y1:
-                    directions.append("right")
-
-            return path, node_count, directions  # Return the found path
+            directions = convert_path_to_directions(path)
+            return path, node_count, directions, came_from  # Return parent dict
 
         # Explore neighbors
         neighbors = get_neighbors(current, walls, rows, cols)
@@ -224,7 +275,7 @@ def a_star(marker, goals, walls, rows, cols, canvas, cell_size):
 
             # If the neighbor is not visited or found a better path
             if tentative_g_score < g_score.get(neighbor, float('inf')):
-                came_from[neighbor] = current  # Record the best path to the neighbor
+                came_from[neighbor] = current  # Track parent-child relationship
                 g_score[neighbor] = tentative_g_score
                 f_score[neighbor] = tentative_g_score + manhattan_distance(neighbor, goals[0])
 
@@ -234,12 +285,13 @@ def a_star(marker, goals, walls, rows, cols, canvas, cell_size):
                     heapq.heappush(open_list, (f_score[neighbor], neighbor))
 
                 # Highlight the neighbor for visualization
-                highlight_cell(canvas, neighbor, cell_size, "lightgreen")  # Optional: visualize neighbors
-                canvas.update()  # Update the canvas for animation
-                time.sleep(0.1)  # Add a delay for better visualization
+                highlight_cell(canvas, neighbor, cell_size, "lightgreen")
+                canvas.update()
+                time.sleep(0.1)  # Add a delay for neighbor visualization
 
     print("No path to the goal was found.")
-    return None, node_count, directions  # No path found
+    return None, node_count, directions, came_from  # No path found
+
 
 
 
