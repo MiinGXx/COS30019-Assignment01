@@ -1,8 +1,7 @@
 import time
 import heapq
-import tkinter as tk
 
-def new_render_search_tree_tk(parent_dict, canvas, node_radius=20, x_gap=60, y_gap=100):
+def render_search_tree(parent_dict, canvas, node_radius=20, x_gap=60, y_gap=60):
     """
     Render the search tree dynamically on the canvas.
     Each node will be drawn in a tree structure with parent-child connections.
@@ -11,7 +10,6 @@ def new_render_search_tree_tk(parent_dict, canvas, node_radius=20, x_gap=60, y_g
 
     # Calculate the canvas dimensions
     canvas_width = canvas.winfo_width()
-    canvas_height = canvas.winfo_height()
 
     # Dictionary to store the positions of each node (key=node, value=(x, y))
     node_positions = {}
@@ -133,7 +131,7 @@ def dfs(marker, goals, walls, rows, cols, canvas, cell_size, tree_canvas):
                 time.sleep(0.1)  # Add a delay for neighbor expansion visualization
 
                 # Render the search tree dynamically
-                new_render_search_tree_tk(parent, tree_canvas)
+                render_search_tree(parent, tree_canvas)
 
     return None, node_count, [], parent  # No path found, return parent dictionary anyway
 
@@ -185,7 +183,7 @@ def bfs(marker, goals, walls, rows, cols, canvas, cell_size, tree_canvas):
                 time.sleep(0.1)  # Add a delay for neighbor expansion visualization
 
                 # Render the search tree dynamically
-                new_render_search_tree_tk(parent, tree_canvas)
+                render_search_tree(parent, tree_canvas)
 
     return None, node_count, [], parent  # Return parent-child relationships even if no path found
 
@@ -253,7 +251,7 @@ def gbfs(marker, goals, walls, rows, cols, canvas, cell_size, tree_canvas):
                 time.sleep(0.1)  # Delay for neighbor visualization
 
                 # Render the search tree dynamically
-                new_render_search_tree_tk(came_from, tree_canvas)
+                render_search_tree(came_from, tree_canvas)
 
     print("No path to the goal was found.")
     return None, node_count, directions, came_from  # No path found, return parent dict
@@ -321,7 +319,7 @@ def a_star(marker, goals, walls, rows, cols, canvas, cell_size, tree_canvas):
                 time.sleep(0.1)  # Add a delay for neighbor visualization
 
                 # Render the search tree dynamically
-                new_render_search_tree_tk(came_from, tree_canvas)
+                render_search_tree(came_from, tree_canvas)
 
     print("No path to the goal was found.")
     return None, node_count, directions, came_from  # No path found

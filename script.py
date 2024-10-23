@@ -2,7 +2,6 @@ import sys
 from gui import create_grid_window
 from wall import add_wall_coordinates
 import re
-from searchstrategy import dfs
 
 def parse_input_file(input_file):
     """Parse the input file to extract grid dimensions, marker, goals, and walls."""

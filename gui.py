@@ -1,6 +1,7 @@
 import tkinter as tk
 from grid import create_grid, create_yellow_square, animate_path
-from searchstrategy import dfs, bfs, gbfs, a_star, highlight_final_path, new_render_search_tree_tk
+from searchstrategy import dfs, bfs, gbfs, a_star, highlight_final_path
+from search_tree import render_search_tree
 
 def add_zoom_and_pan(canvas):
     """Add zoom and pan functionality to the canvas."""
@@ -58,7 +59,7 @@ def create_grid_window(rows, cols, marker, goals, walls, method, cell_size=50):
     grid_canvas.config(xscrollcommand=grid_hbar.set, yscrollcommand=grid_vbar.set)
 
     # Text widget for displaying the output information
-    output_text = tk.Text(window, height=10, width=50)
+    output_text = tk.Text(window, height=10, width=50, font=("Arial", 12))
     output_text.grid(row=1, column=0, sticky="nsew", padx=10, pady=10)
 
     # Canvas for search tree visualization (scalable with window resizing)
@@ -95,7 +96,7 @@ def create_grid_window(rows, cols, marker, goals, walls, method, cell_size=50):
         animate_path(grid_canvas, yellow_square, path)
 
         # Render the final search tree (if needed)
-        new_render_search_tree_tk(parent, tree_canvas)
+        render_search_tree(parent, tree_canvas)
 
         # Display the output information
         goal_reached = path[-1]
