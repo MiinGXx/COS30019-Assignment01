@@ -2,7 +2,7 @@ import time
 import heapq
 import tkinter as tk
 
-def new_render_search_tree_tk(parent_dict, canvas, node_radius=20, x_gap=100, y_gap=100):
+def new_render_search_tree_tk(parent_dict, canvas, node_radius=20, x_gap=60, y_gap=100):
     """
     Render the search tree dynamically on the canvas.
     Each node will be drawn in a tree structure with parent-child connections.

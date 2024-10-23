@@ -40,22 +40,36 @@ def create_grid_window(rows, cols, marker, goals, walls, method, cell_size=50):
 
     # Configure grid layout to allow dynamic scaling
     window.grid_rowconfigure(0, weight=1)
+    window.grid_rowconfigure(1, weight=1)
     window.grid_columnconfigure(0, weight=1)
     window.grid_columnconfigure(1, weight=1)
 
-    # Canvas for grid visualization
-    grid_canvas = tk.Canvas(window, width=cols * cell_size, height=rows * cell_size)
-    grid_canvas.grid(row=0, column=0, sticky="nsew")
+    # Frame for grid visualization with scrollbars
+    grid_frame = tk.Frame(window)
+    grid_frame.grid(row=0, column=0, sticky="nsew")
+
+    grid_canvas = tk.Canvas(grid_frame, width=cols * cell_size, height=rows * cell_size, bg="white")
+    grid_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+    grid_hbar = tk.Scrollbar(grid_frame, orient=tk.HORIZONTAL, command=grid_canvas.xview)
+    grid_hbar.pack(side=tk.BOTTOM, fill=tk.X)
+    grid_vbar = tk.Scrollbar(grid_frame, orient=tk.VERTICAL, command=grid_canvas.yview)
+    grid_vbar.pack(side=tk.RIGHT, fill=tk.Y)
+    grid_canvas.config(xscrollcommand=grid_hbar.set, yscrollcommand=grid_vbar.set)
+
+    # Text widget for displaying the output information
+    output_text = tk.Text(window, height=10, width=50)
+    output_text.grid(row=1, column=0, sticky="nsew", padx=10, pady=10)
 
     # Canvas for search tree visualization (scalable with window resizing)
     tree_canvas = tk.Canvas(window, bg="white")
-    tree_canvas.grid(row=0, column=1, sticky="nsew", padx=20)
+    tree_canvas.grid(row=0, column=1, rowspan=2, sticky="nsew", padx=20)
 
     # Make the canvas scrollable
     hbar = tk.Scrollbar(window, orient=tk.HORIZONTAL, command=tree_canvas.xview)
-    hbar.grid(row=1, column=1, sticky='ew')
+    hbar.grid(row=2, column=1, sticky='ew')
     vbar = tk.Scrollbar(window, orient=tk.VERTICAL, command=tree_canvas.yview)
-    vbar.grid(row=0, column=2, sticky='ns')
+    vbar.grid(row=0, column=2, rowspan=2, sticky='ns')
     tree_canvas.config(xscrollcommand=hbar.set, yscrollcommand=vbar.set)
     
     add_zoom_and_pan(tree_canvas)  # Add zoom and pan to the search tree canvas
@@ -72,7 +86,7 @@ def create_grid_window(rows, cols, marker, goals, walls, method, cell_size=50):
     elif method == "AS":
         path, node_count, directions, parent = a_star(marker, goals, walls, rows, cols, grid_canvas, cell_size, tree_canvas)
     else:
-        print(f"Method '{method}' not supported.")
+        output_text.insert(tk.END, f"Method '{method}' not supported.\n")
         return
 
     if path:
@@ -82,5 +96,14 @@ def create_grid_window(rows, cols, marker, goals, walls, method, cell_size=50):
 
         # Render the final search tree (if needed)
         new_render_search_tree_tk(parent, tree_canvas)
+
+        # Display the output information
+        goal_reached = path[-1]
+        output_text.insert(tk.END, f"Search Strategy: {method}\n")
+        output_text.insert(tk.END, f"Goal Reached: {goal_reached}\n")
+        output_text.insert(tk.END, f"Number of Nodes to Reach Goal: {node_count}\n")
+        output_text.insert(tk.END, f"Final Path to Goal: {', '.join(directions)}\n")
+    else:
+        output_text.insert(tk.END, "No path to the goal was found.\n")
 
     window.mainloop()
