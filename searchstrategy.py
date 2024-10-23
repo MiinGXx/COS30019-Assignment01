@@ -1,79 +1,72 @@
 import time
 import heapq
-import networkx as nx
-import matplotlib.pyplot as plt
+import tkinter as tk
 
-def hierarchy_pos(G, root=None, width=1., vert_gap=0.2, vert_loc=0, xcenter=0.5):
+def new_render_search_tree_tk(parent_dict, canvas, node_radius=20, x_gap=60, y_gap=100):
     """
-    If the graph is a tree, this will return the positions to plot this in a hierarchical layout.
-    Arguments:
-        G (networkx.DiGraph): The graph to plot.
-        root (tuple): The root node for the tree (should be the starting grid coordinate).
-        width (float): Horizontal space allocated for the layout.
-        vert_gap (float): Vertical gap between levels of the tree.
-        vert_loc (float): The vertical location of the root.
-        xcenter (float): The horizontal location of the root.
-    Returns:
-        pos (dict): A dictionary of positions keyed by node.
+    Render the search tree dynamically on the canvas.
+    Each node will be drawn in a tree structure with parent-child connections.
     """
-    pos = _hierarchy_pos(G, root, width, vert_gap, vert_loc, xcenter)
-    return pos
+    canvas.delete("all")  # Clear any previous drawing
 
-def _hierarchy_pos(G, node, width=1., vert_gap=0.2, vert_loc=0, xcenter=0.5, pos=None, parent=None, parsed=[]):
-    """
-    Helper function for hierarchy_pos.
-    """
-    if pos is None:
-        pos = {node: (xcenter, vert_loc)}
-    else:
-        pos[node] = (xcenter, vert_loc)
-        
-    children = list(G.neighbors(node))
-    
-    if not isinstance(G, nx.DiGraph):
-        raise TypeError("The graph must be a directed graph.")
-    
-    if not children:
-        return pos
-    
-    dx = width / max(1, len(children))  # Adjust horizontal space based on the number of children
-    nextx = xcenter - width / 2 - dx / 2  # Adjust x position to center the children
-    
-    for child in children:
-        nextx += dx
-        pos = _hierarchy_pos(G, child, width=dx, vert_gap=vert_gap, vert_loc=vert_loc - vert_gap, xcenter=nextx, pos=pos, parent=node, parsed=parsed)
-    
-    return pos
+    # Calculate the canvas dimensions
+    canvas_width = canvas.winfo_width()
+    canvas_height = canvas.winfo_height()
 
-def render_search_tree(parent_dict):
-    """Render the search tree based on parent-child relationships."""
-    G = nx.DiGraph()  # Create a directed graph
+    # Dictionary to store the positions of each node (key=node, value=(x, y))
+    node_positions = {}
 
-    # Add edges based on parent-child relationships
-    for child, parent in parent_dict.items():
+    # Recursive function to calculate and assign positions for each node
+    def calculate_positions(node, depth, x_position):
+        """Assign positions to nodes based on the depth and available width."""
+        # Get all children of the current node
+        children = [child for child, parent in parent_dict.items() if parent == node]
+
+        # Calculate the node's x position
+        node_x = x_position
+        node_y = depth * y_gap
+        node_positions[node] = (node_x, node_y)
+
+        # Determine the number of children
+        num_children = len(children)
+        if num_children > 0:
+            # Distribute child nodes across a section of the x-axis
+            start_x = x_position - (num_children - 1) * x_gap // 2
+            for i, child in enumerate(children):
+                child_x_position = start_x + i * x_gap
+                calculate_positions(child, depth + 1, child_x_position)
+
+    # Find the root (node with no parent)
+    root_node = next(node for node in parent_dict if parent_dict[node] is None)
+    # Start the position calculation from the root node
+    calculate_positions(root_node, 0, canvas_width // 2)
+
+    # Draw lines connecting each parent to its children
+    for node, (x, y) in node_positions.items():
+        parent = parent_dict.get(node)
         if parent is not None:
-            G.add_edge(parent, child)
+            parent_x, parent_y = node_positions[parent]
+            canvas.create_line(parent_x, parent_y + node_radius, x, y - node_radius, fill="black", width=2)
 
-    # Get the root of the tree (starting node) - usually the marker/agent
-    root = [node for node in parent_dict if parent_dict[node] is None][0]
+    # Draw nodes (circles) and label them with their respective state names
+    for node, (x, y) in node_positions.items():
+        canvas.create_oval(x - node_radius, y - node_radius, x + node_radius, y + node_radius, fill="lightblue", outline="black")
+        canvas.create_text(x, y, text=str(node), font=("Arial", 12))
 
-    # Use the custom hierarchy layout for the tree
-    pos = hierarchy_pos(G, root, width=2.0, vert_gap=0.5)  # Increase width and vertical gap for more space
+    # Update the canvas
+    canvas.update()
 
-    # Create a larger plot to accommodate more space
-    plt.figure(figsize=(12, 8))  # Adjust the figure size (width, height)
 
-    # Draw the tree with the hierarchical layout
-    nx.draw(G, pos, with_labels=True, node_size=300, node_color="lightblue", font_size=8, font_weight="bold", arrows=True)
 
-    plt.title("Search Tree (Top-to-Bottom Layout)")
-    plt.show()
+
+
+
 
 
 
 
 """         DEPTH-FIRST SEARCH         """
-def dfs(marker, goals, walls, rows, cols, canvas, cell_size):
+def dfs(marker, goals, walls, rows, cols, canvas, cell_size, tree_canvas):
     stack = [(marker, [marker])]
     visited = set()
     parent = {}
@@ -112,13 +105,17 @@ def dfs(marker, goals, walls, rows, cols, canvas, cell_size):
                 canvas.update()
                 time.sleep(0.1)  # Add a delay for neighbor expansion visualization
 
+                # Render the search tree dynamically
+                new_render_search_tree_tk(parent, tree_canvas)
+
     return None, node_count, [], parent  # No path found, return parent dictionary anyway
 
 
 
 
+
 """         BREADTH-FIRST SEARCH         """
-def bfs(marker, goals, walls, rows, cols, canvas, cell_size):
+def bfs(marker, goals, walls, rows, cols, canvas, cell_size, tree_canvas):
     """Perform Breadth-First Search (BFS) with visualized search tree changes and node tracking."""
     queue = [(marker, [marker])]  # Queue to manage BFS (FIFO)
     visited = set()  # Keep track of visited nodes
@@ -160,6 +157,9 @@ def bfs(marker, goals, walls, rows, cols, canvas, cell_size):
                 canvas.update()
                 time.sleep(0.1)  # Add a delay for neighbor expansion visualization
 
+                # Render the search tree dynamically
+                new_render_search_tree_tk(parent, tree_canvas)
+
     return None, node_count, [], parent  # Return parent-child relationships even if no path found
 
 
@@ -172,7 +172,8 @@ def manhattan_distance(node, goal):
     return abs(node[0] - goal[0]) + abs(node[1] - goal[1])
 
 # Greedy Best-First Search (GBFS)
-def gbfs(marker, goals, walls, rows, cols, canvas, cell_size):
+"""         GREEDY BEST-FIRST SEARCH (GBFS)         """
+def gbfs(marker, goals, walls, rows, cols, canvas, cell_size, tree_canvas):
     """Greedy Best-First Search implementation with visualization."""
     open_list = []
     heapq.heappush(open_list, (0, marker))  # priority queue with heuristic values
@@ -224,6 +225,9 @@ def gbfs(marker, goals, walls, rows, cols, canvas, cell_size):
                 canvas.update()
                 time.sleep(0.1)  # Delay for neighbor visualization
 
+                # Render the search tree dynamically
+                new_render_search_tree_tk(came_from, tree_canvas)
+
     print("No path to the goal was found.")
     return None, node_count, directions, came_from  # No path found, return parent dict
 
@@ -234,7 +238,7 @@ def gbfs(marker, goals, walls, rows, cols, canvas, cell_size):
 
 
 """         A* SEARCH         """
-def a_star(marker, goals, walls, rows, cols, canvas, cell_size):
+def a_star(marker, goals, walls, rows, cols, canvas, cell_size, tree_canvas):
     """A* search algorithm implementation with visualized visited nodes."""
     open_list = []  # Priority queue for nodes to be evaluated
     heapq.heappush(open_list, (0, marker))  # Push the starting marker with a priority of 0
@@ -288,6 +292,9 @@ def a_star(marker, goals, walls, rows, cols, canvas, cell_size):
                 highlight_cell(canvas, neighbor, cell_size, "lightgreen")
                 canvas.update()
                 time.sleep(0.1)  # Add a delay for neighbor visualization
+
+                # Render the search tree dynamically
+                new_render_search_tree_tk(came_from, tree_canvas)
 
     print("No path to the goal was found.")
     return None, node_count, directions, came_from  # No path found
