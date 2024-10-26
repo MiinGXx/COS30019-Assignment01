@@ -393,6 +393,21 @@ def highlight_cell(canvas, position, cell_size, color):
     canvas.create_rectangle(x1, y1, x2, y2, fill=color, outline="black")
 
 def highlight_final_path(canvas, path, cell_size):
-    """Highlight the final path in light blue."""
-    for position in path: 
+    """Highlight the final path with red lines."""
+    previous_position = None
+    for position in path:
+        col, row = position
+        # Highlight the cell in light blue
         highlight_cell(canvas, position, cell_size, "lightblue")
+
+        # Calculate the midpoint of the current cell
+        x_mid = col * cell_size + cell_size / 2
+        y_mid = row * cell_size + cell_size / 2
+
+        # If there's a previous position, draw a red line from the previous midpoint to the current midpoint
+        if previous_position:
+            canvas.create_line(previous_position[0], previous_position[1], x_mid, y_mid, fill="red", width=2)
+
+        # Update the previous position to the current midpoint
+        previous_position = (x_mid, y_mid)
+
