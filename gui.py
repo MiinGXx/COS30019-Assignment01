@@ -1,7 +1,14 @@
 import tkinter as tk
-from grid import create_grid, create_yellow_square, animate_path
-from searchstrategy import dfs, bfs, gbfs, a_star, highlight_final_path
+from grid import create_grid, create_yellow_square, animate_path, move_yellow_square
+from searchstrategy import dfs, bfs, gbfs, a_star, highlight_final_path, highlight_cell
 from search_tree import render_search_tree
+
+# Global variables for storing the current state
+state = {
+    "steps": [],
+    "yellow_square": None,
+    "current_step": -1
+}
 
 def add_zoom_and_pan(canvas):
     """Add zoom and pan functionality to the canvas."""
@@ -34,6 +41,88 @@ def add_zoom_and_pan(canvas):
     canvas.bind("<MouseWheel>", on_mouse_wheel)  # Zoom on scroll (Windows/Linux)
     canvas.bind("<ButtonPress-1>", on_button_press)  # Start dragging on left click
     canvas.bind("<B1-Motion>", on_mouse_drag)  # Drag the canvas on left click
+
+def next_step(canvas, tree_canvas, rows, cols, marker, goals, walls, cell_size):
+    """Advance one step in the search process, resetting if necessary."""
+    global state
+    # If the search is completed and we're at the end of steps, reset the grid first
+    if state["search_completed"] and state["current_step"] == -1:
+        # Reset the grid visualizer
+        reset_grid(canvas, tree_canvas, rows, cols, marker, goals, walls, cell_size)
+
+    # Check if there are more steps available
+    while state["current_step"] < len(state["steps"]) - 1:
+        state["current_step"] += 1  # Move one step forward
+        step = state["steps"][state["current_step"]]
+
+        if step[0] == 'move':
+            # Move the yellow square to the next cell
+            move_yellow_square(canvas, state["yellow_square"], step[1][0], step[1][1], cell_size)
+            canvas.update()  # Ensure the move is immediately rendered
+            break  # Break after a visible action
+        
+        elif step[0] == 'highlight':
+            # Highlight the next node
+            highlight_cell(canvas, step[1], cell_size, step[2])  # Apply the correct highlight color
+            # Also move the yellow square during node exploration
+            move_yellow_square(canvas, state["yellow_square"], step[1][0], step[1][1], cell_size)
+            canvas.update()  # Ensure both highlight and move are rendered immediately
+            break  # Break after a visible action
+        
+        elif step[0] == 'tree_update':
+            # Re-render the search tree for the next step
+            render_search_tree(step[1], tree_canvas)
+            canvas.update()  # Ensure the tree update is immediately rendered
+            # Continue loop, as tree update may not be visually noticeable
+
+
+
+def previous_step(canvas, tree_canvas, cell_size):
+    """Backtrack one step in the search process."""
+    global state
+    if state["current_step"] > 0:
+        state["current_step"] -= 1  # Move one step back
+        step = state["steps"][state["current_step"]]
+
+        if step[0] == 'move':
+            # Move the yellow square back to the previous cell
+            move_yellow_square(canvas, state["yellow_square"], step[1][0], step[1][1], cell_size)
+        
+        elif step[0] == 'highlight':
+            # Clear the current highlight
+            highlight_cell(canvas, step[1], cell_size, "white")  # Reset the highlighted cell
+        
+        elif step[0] == 'tree_update':
+            # Re-render the search tree up to this point
+            render_search_tree(step[1], tree_canvas)
+
+        canvas.update()  # Update the canvas after backtracking
+
+# Global variables for storing the current state
+state = {
+    "steps": [],
+    "yellow_square": None,
+    "current_step": -1,
+    "search_completed": False  # To track when the search is complete
+}
+
+def reset_grid(canvas, tree_canvas, rows, cols, marker, goals, walls, cell_size):
+    """Reset the grid and search tree canvas, clearing all highlights and returning to the initial state."""
+    global state
+    # Clear the canvases
+    canvas.delete("all")
+    tree_canvas.delete("all")
+
+    # Recreate the grid and reset the yellow square
+    create_grid(canvas, rows, cols, markers=[marker], goals=goals, walls=walls)
+    state["yellow_square"] = create_yellow_square(canvas, marker[0], marker[1], cell_size)
+
+    # Reset the current step counter
+    state["current_step"] = -1
+
+    # Update the canvas after reset
+    canvas.update()
+    tree_canvas.update()
 
 def create_grid_window(rows, cols, marker, goals, walls, method, cell_size=50):
     window = tk.Tk()
@@ -78,6 +167,7 @@ def create_grid_window(rows, cols, marker, goals, walls, method, cell_size=50):
 
     def run_search():
         """Run the selected search algorithm and update the visualizations."""
+        global state
         # Clear the canvases and output text
         grid_canvas.delete("all")
         tree_canvas.delete("all")
@@ -88,21 +178,21 @@ def create_grid_window(rows, cols, marker, goals, walls, method, cell_size=50):
 
         # Run the selected search algorithm
         if method == "DFS":
-            path, node_count, directions, parent = dfs(marker, goals, walls, rows, cols, grid_canvas, cell_size, tree_canvas)
+            path, node_count, directions, parent, steps = dfs(marker, goals, walls, rows, cols, grid_canvas, cell_size, tree_canvas)
         elif method == "BFS":
-            path, node_count, directions, parent = bfs(marker, goals, walls, rows, cols, grid_canvas, cell_size, tree_canvas)
+            path, node_count, directions, parent, steps = bfs(marker, goals, walls, rows, cols, grid_canvas, cell_size, tree_canvas)
         elif method == "GBFS":
-            path, node_count, directions, parent = gbfs(marker, goals, walls, rows, cols, grid_canvas, cell_size, tree_canvas)
+            path, node_count, directions, parent, steps = gbfs(marker, goals, walls, rows, cols, grid_canvas, cell_size, tree_canvas)
         elif method == "AS":
-            path, node_count, directions, parent = a_star(marker, goals, walls, rows, cols, grid_canvas, cell_size, tree_canvas)
+            path, node_count, directions, parent, steps = a_star(marker, goals, walls, rows, cols, grid_canvas, cell_size, tree_canvas)
         else:
             output_text.insert(tk.END, f"Method '{method}' not supported.\n")
             return
 
         if path:
             highlight_final_path(grid_canvas, path, cell_size)
-            yellow_square = create_yellow_square(grid_canvas, marker[0], marker[1], cell_size)
-            animate_path(grid_canvas, yellow_square, path)
+            state["yellow_square"] = create_yellow_square(grid_canvas, marker[0], marker[1], cell_size)
+            animate_path(grid_canvas, state["yellow_square"], path)
 
             # Render the final search tree (if needed)
             render_search_tree(parent, tree_canvas)
@@ -113,8 +203,11 @@ def create_grid_window(rows, cols, marker, goals, walls, method, cell_size=50):
             output_text.insert(tk.END, f"Goal Reached: {goal_reached}\n")
             output_text.insert(tk.END, f"Number of Nodes to Reach Goal: {node_count}\n")
             output_text.insert(tk.END, f"Final Path to Goal: {', '.join(directions)}\n")
-        else:
-            output_text.insert(tk.END, "No path to the goal was found.\n")
+
+        # Store the steps and initialize step tracking for forward/backward steps
+        state["steps"] = steps
+        state["current_step"] = -1  # Start before the first step
+        state["search_completed"] = True  # Mark the search as completed
 
     # Frame for buttons
     button_frame = tk.Frame(window)
@@ -122,8 +215,8 @@ def create_grid_window(rows, cols, marker, goals, walls, method, cell_size=50):
 
     # Button labels and their corresponding commands
     button_commands = {
-        "Next Step": None,  # Placeholder for the next step function
-        "Previous Step": None,  # Placeholder for the previous step function
+        "Next Step": lambda: next_step(grid_canvas, tree_canvas, rows, cols, marker, goals, walls, cell_size),
+        "Previous Step": lambda: previous_step(grid_canvas, tree_canvas, cell_size),
         "Start Over": run_search
     }
 
@@ -136,3 +229,5 @@ def create_grid_window(rows, cols, marker, goals, walls, method, cell_size=50):
     run_search()
 
     window.mainloop()
+
+

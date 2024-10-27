@@ -10,6 +10,7 @@ def dfs(marker, goals, walls, rows, cols, canvas, cell_size, tree_canvas):
     parent = {}
     parent[marker] = None  # Root node has no parent
     node_count = 0
+    steps = []  # To store each step
 
     # Create the yellow square
     yellow_square = create_yellow_square(canvas, marker[0], marker[1], cell_size)
@@ -22,22 +23,24 @@ def dfs(marker, goals, walls, rows, cols, canvas, cell_size, tree_canvas):
         visited.add(current)
         node_count += 1
 
+        # Store the current step
+        steps.append(('move', current))
+
         # Highlight the current node as visited
         highlight_cell(canvas, current, cell_size, "lightgray")
         canvas.update()
 
         # Move the yellow square to the current node
         move_yellow_square(canvas, yellow_square, current[0], current[1], cell_size)
+        steps.append(('highlight', current, "lightgray"))  # Save the highlighted step
 
         time.sleep(0.1)  # Add a delay for better visualization
 
         if current in goals:
             # Remove the yellow square before playing the final path animation
             canvas.delete(yellow_square)
-            
-            # Now return the path for the final path animation
             directions = convert_path_to_directions(path)
-            return path, node_count, directions, parent  # Return parent dict
+            return path, node_count, directions, parent, steps  # Return the steps
 
         neighbors = get_neighbors(current, walls, rows, cols)
         for neighbor in neighbors:
@@ -47,14 +50,15 @@ def dfs(marker, goals, walls, rows, cols, canvas, cell_size, tree_canvas):
 
                 # Highlight the neighbors being expanded
                 highlight_cell(canvas, neighbor, cell_size, "lightgreen")
+                steps.append(('highlight', neighbor, "lightgreen"))  # Save the highlight step
                 canvas.update()
 
                 # Render the search tree dynamically
                 render_search_tree(parent, tree_canvas)
+                steps.append(('tree_update', parent))  # Save the tree update
                 time.sleep(0.1)  # Add a delay for neighbor expansion visualization
 
-
-
+    return None, node_count, [], parent, steps  # Return the steps
 
 """         BREADTH-FIRST SEARCH         """
 def bfs(marker, goals, walls, rows, cols, canvas, cell_size, tree_canvas):
@@ -64,6 +68,7 @@ def bfs(marker, goals, walls, rows, cols, canvas, cell_size, tree_canvas):
     parent = {}  # Track parent-child relationships
     parent[marker] = None  # Root node has no parent
     node_count = 0  # To track the number of nodes created
+    steps = []  # To store each step
 
     # Create the yellow square
     yellow_square = create_yellow_square(canvas, marker[0], marker[1], cell_size)
@@ -78,12 +83,16 @@ def bfs(marker, goals, walls, rows, cols, canvas, cell_size, tree_canvas):
         visited.add(current)
         node_count += 1  # Count the node
 
+        # Store the current step
+        steps.append(('move', current))
+
         # Highlight the current node as visited
         highlight_cell(canvas, current, cell_size, "lightgray")
         canvas.update()
 
         # Move the yellow square to the current node
         move_yellow_square(canvas, yellow_square, current[0], current[1], cell_size)
+        steps.append(('highlight', current, "lightgray"))  # Save the highlighted step
 
         time.sleep(0.1)  # Add a delay for better visualization
 
@@ -91,9 +100,8 @@ def bfs(marker, goals, walls, rows, cols, canvas, cell_size, tree_canvas):
         if current in goals:
             # Remove the yellow square before playing the final path animation
             canvas.delete(yellow_square)
-            
             directions = convert_path_to_directions(path)
-            return path, node_count, directions, parent  # Return parent dict
+            return path, node_count, directions, parent, steps  # Return the steps
 
         # Get the possible neighbors (UP, LEFT, DOWN, RIGHT)
         neighbors = get_neighbors_inverted(current, walls, rows, cols)
@@ -104,12 +112,15 @@ def bfs(marker, goals, walls, rows, cols, canvas, cell_size, tree_canvas):
                 queue.append((neighbor, path + [neighbor]))  # Enqueue neighbors
                 parent[neighbor] = current  # Track the parent
                 highlight_cell(canvas, neighbor, cell_size, "lightgreen")
+                steps.append(('highlight', neighbor, "lightgreen"))  # Save the highlight step
                 canvas.update()
 
                 # Render the search tree dynamically
                 render_search_tree(parent, tree_canvas)
+                steps.append(('tree_update', parent))  # Save the tree update
                 time.sleep(0.1)  # Add a delay for neighbor expansion visualization
 
+    return None, node_count, [], parent, steps  # Return the steps
 
 """         GREEDY BEST-FIRST SEARCH (GBFS)         """
 def gbfs(marker, goals, walls, rows, cols, canvas, cell_size, tree_canvas):
@@ -121,6 +132,7 @@ def gbfs(marker, goals, walls, rows, cols, canvas, cell_size, tree_canvas):
     visited.add(marker)
     node_count = 0
     directions = []
+    steps = []  # To store each step
 
     # Create the yellow square
     yellow_square = create_yellow_square(canvas, marker[0], marker[1], cell_size)
@@ -131,12 +143,16 @@ def gbfs(marker, goals, walls, rows, cols, canvas, cell_size, tree_canvas):
         _, current = heapq.heappop(open_list)
         node_count += 1
 
+        # Store the current step
+        steps.append(('move', current))
+
         # Highlight the current node as visited
         highlight_cell(canvas, current, cell_size, "lightgray")
         canvas.update()
 
         # Move the yellow square to the current node
         move_yellow_square(canvas, yellow_square, current[0], current[1], cell_size)
+        steps.append(('highlight', current, "lightgray"))  # Save the highlighted step
 
         time.sleep(0.1)  # Add a delay for better visualization
 
@@ -156,7 +172,7 @@ def gbfs(marker, goals, walls, rows, cols, canvas, cell_size, tree_canvas):
 
             # Highlight the final path in blue
             highlight_final_path(canvas, path, cell_size)
-            return path, node_count, directions, came_from  # Return parent-child relationships
+            return path, node_count, directions, came_from, steps  # Return the steps
 
         # Explore neighbors (prioritize based on heuristic)
         neighbors = get_neighbors(current, walls, rows, cols)
@@ -168,11 +184,15 @@ def gbfs(marker, goals, walls, rows, cols, canvas, cell_size, tree_canvas):
                 
                 # Highlight the neighbors being considered
                 highlight_cell(canvas, neighbor, cell_size, "lightgreen")
+                steps.append(('highlight', neighbor, "lightgreen"))  # Save the highlight step
                 canvas.update()
 
                 # Render the search tree dynamically
                 render_search_tree(came_from, tree_canvas)
+                steps.append(('tree_update', came_from))  # Save the tree update
                 time.sleep(0.1)  # Add a delay for neighbor visualization
+
+    return None, node_count, [], came_from, steps  # Return the steps
 
 """         A* SEARCH         """
 def a_star(marker, goals, walls, rows, cols, canvas, cell_size, tree_canvas):
@@ -185,6 +205,7 @@ def a_star(marker, goals, walls, rows, cols, canvas, cell_size, tree_canvas):
     visited = set()
     node_count = 0
     directions = []
+    steps = []  # To store each step
 
     # Create the yellow square
     yellow_square = create_yellow_square(canvas, marker[0], marker[1], cell_size)
@@ -196,12 +217,16 @@ def a_star(marker, goals, walls, rows, cols, canvas, cell_size, tree_canvas):
         current = heapq.heappop(open_list)[1]
         node_count += 1
 
+        # Store the current step
+        steps.append(('move', current))
+
         # Highlight the current node as visited (in light gray)
         highlight_cell(canvas, current, cell_size, "lightgray")
         canvas.update()
 
         # Move the yellow square to the current node
         move_yellow_square(canvas, yellow_square, current[0], current[1], cell_size)
+        steps.append(('highlight', current, "lightgray"))  # Save the highlighted step
 
         time.sleep(0.1)  # Add a delay for better visualization
 
@@ -219,7 +244,7 @@ def a_star(marker, goals, walls, rows, cols, canvas, cell_size, tree_canvas):
 
             # Convert path to directions (up, left, down, right)
             directions = convert_path_to_directions(path)
-            return path, node_count, directions, came_from  # Return parent dict
+            return path, node_count, directions, came_from, steps  # Return the steps
 
         # Explore neighbors
         neighbors = get_neighbors(current, walls, rows, cols)
@@ -239,12 +264,15 @@ def a_star(marker, goals, walls, rows, cols, canvas, cell_size, tree_canvas):
 
                 # Highlight the neighbor for visualization
                 highlight_cell(canvas, neighbor, cell_size, "lightgreen")
+                steps.append(('highlight', neighbor, "lightgreen"))  # Save the highlight step
                 canvas.update()
 
                 # Render the search tree dynamically
                 render_search_tree(came_from, tree_canvas)
+                steps.append(('tree_update', came_from))  # Save the tree update
                 time.sleep(0.1)  # Add a delay for neighbor visualization
 
+    return None, node_count, [], came_from, steps  # Return the steps
 
 # Heuristic function (Manhattan distance)
 def manhattan_distance(node, goal):
