@@ -1,94 +1,7 @@
 import time
 import heapq
-
-def render_search_tree(parent_dict, canvas, node_radius=20, x_gap=60, y_gap=60):
-    """
-    Render the search tree dynamically on the canvas.
-    Each node will be drawn in a tree structure with parent-child connections.
-    """
-    canvas.delete("all")  # Clear any previous drawing
-
-    # Calculate the canvas dimensions
-    canvas_width = canvas.winfo_width()
-
-    # Dictionary to store the positions of each node (key=node, value=(x, y))
-    node_positions = {}
-
-    # Function to calculate the width of the subtree rooted at a given node
-    def calculate_subtree_width(node):
-        children = [child for child, parent in parent_dict.items() if parent == node]
-        if not children:
-            return 1  # Leaf nodes take up a width of 1 unit
-
-        # Sum up the widths of all child subtrees
-        subtree_width = 0
-        for child in children:
-            child_subtree_width = calculate_subtree_width(child)
-            subtree_width += child_subtree_width
-
-        return max(subtree_width, len(children))  # Ensure width is large enough for splitting
-
-    # Recursive function to assign positions based on dynamically updated subtree width
-    def assign_positions(node, depth, x_offset):
-        # Calculate the width of the subtree rooted at this node
-        subtree_width = calculate_subtree_width(node)
-
-        # The x position is the middle of this subtree
-        x = x_offset + (subtree_width / 2) * x_gap
-        y = depth * y_gap
-        node_positions[node] = (x, y)
-
-        # Now, assign positions to the children
-        children = [child for child, parent in parent_dict.items() if parent == node]
-        if children:
-            total_width = sum(calculate_subtree_width(child) for child in children)
-            current_x_offset = x_offset
-
-            # Adjust child positions evenly around the parent node
-            for child in children:
-                child_width = calculate_subtree_width(child)
-                assign_positions(child, depth + 1, current_x_offset)
-                current_x_offset += child_width * x_gap
-
-    # Find the root (node with no parent)
-    root = [node for node in parent_dict if parent_dict[node] is None][0]
-
-    # Calculate the total width of the tree
-    total_tree_width = calculate_subtree_width(root)
-
-    # Assign positions to all nodes, starting from the root
-    assign_positions(root, 0, 0)
-
-    # Calculate the horizontal offset to center the tree on the canvas
-    total_tree_pixel_width = total_tree_width * x_gap
-    center_offset = (canvas_width - total_tree_pixel_width) // 2
-
-    # Draw the edges (arrows) first, so they appear behind the nodes
-    for node, (x, y) in node_positions.items():
-        x += center_offset  # Apply centering offset to each node's x position
-        if parent_dict[node] is not None:
-            parent_x, parent_y = node_positions[parent_dict[node]]
-            parent_x += center_offset
-            canvas.create_line(parent_x, parent_y + node_radius, x, y - node_radius, fill="black", width=2)
-
-    # Draw the nodes on top of the arrows
-    for node, (x, y) in node_positions.items():
-        x += center_offset  # Apply centering offset
-        # Draw the node as a circle
-        canvas.create_oval(x - node_radius, y - node_radius, x + node_radius, y + node_radius, fill="lightblue", outline="black")
-        canvas.create_text(x, y, text=str(node), font=("Arial", 10, "bold"))
-
-    # Update the canvas display
-    canvas.update()
-
-
-
-
-
-
-
-
-
+from grid import create_yellow_square, move_yellow_square, animate_path
+from search_tree import render_search_tree
 
 """         DEPTH-FIRST SEARCH         """
 def dfs(marker, goals, walls, rows, cols, canvas, cell_size, tree_canvas):
@@ -98,9 +11,8 @@ def dfs(marker, goals, walls, rows, cols, canvas, cell_size, tree_canvas):
     parent[marker] = None  # Root node has no parent
     node_count = 0
 
-    # Visualize the initial marker
-    highlight_cell(canvas, marker, cell_size, "yellow")
-    canvas.update()
+    # Create the yellow square
+    yellow_square = create_yellow_square(canvas, marker[0], marker[1], cell_size)
 
     while stack:
         (current, path) = stack.pop()
@@ -113,9 +25,17 @@ def dfs(marker, goals, walls, rows, cols, canvas, cell_size, tree_canvas):
         # Highlight the current node as visited
         highlight_cell(canvas, current, cell_size, "lightgray")
         canvas.update()
+
+        # Move the yellow square to the current node
+        move_yellow_square(canvas, yellow_square, current[0], current[1], cell_size)
+
         time.sleep(0.1)  # Add a delay for better visualization
 
         if current in goals:
+            # Remove the yellow square before playing the final path animation
+            canvas.delete(yellow_square)
+            
+            # Now return the path for the final path animation
             directions = convert_path_to_directions(path)
             return path, node_count, directions, parent  # Return parent dict
 
@@ -128,13 +48,10 @@ def dfs(marker, goals, walls, rows, cols, canvas, cell_size, tree_canvas):
                 # Highlight the neighbors being expanded
                 highlight_cell(canvas, neighbor, cell_size, "lightgreen")
                 canvas.update()
-                time.sleep(0.1)  # Add a delay for neighbor expansion visualization
 
                 # Render the search tree dynamically
                 render_search_tree(parent, tree_canvas)
-
-    return None, node_count, [], parent  # No path found, return parent dictionary anyway
-
+                time.sleep(0.1)  # Add a delay for neighbor expansion visualization
 
 
 
@@ -148,7 +65,8 @@ def bfs(marker, goals, walls, rows, cols, canvas, cell_size, tree_canvas):
     parent[marker] = None  # Root node has no parent
     node_count = 0  # To track the number of nodes created
 
-    # Visualize the initial marker
+    # Create the yellow square
+    yellow_square = create_yellow_square(canvas, marker[0], marker[1], cell_size)
     highlight_cell(canvas, marker, cell_size, "yellow")
     canvas.update()
 
@@ -163,10 +81,17 @@ def bfs(marker, goals, walls, rows, cols, canvas, cell_size, tree_canvas):
         # Highlight the current node as visited
         highlight_cell(canvas, current, cell_size, "lightgray")
         canvas.update()
+
+        # Move the yellow square to the current node
+        move_yellow_square(canvas, yellow_square, current[0], current[1], cell_size)
+
         time.sleep(0.1)  # Add a delay for better visualization
 
         # If we reached one of the goals, return the path and parent-child relationships
         if current in goals:
+            # Remove the yellow square before playing the final path animation
+            canvas.delete(yellow_square)
+            
             directions = convert_path_to_directions(path)
             return path, node_count, directions, parent  # Return parent dict
 
@@ -180,23 +105,12 @@ def bfs(marker, goals, walls, rows, cols, canvas, cell_size, tree_canvas):
                 parent[neighbor] = current  # Track the parent
                 highlight_cell(canvas, neighbor, cell_size, "lightgreen")
                 canvas.update()
-                time.sleep(0.1)  # Add a delay for neighbor expansion visualization
 
                 # Render the search tree dynamically
                 render_search_tree(parent, tree_canvas)
-
-    return None, node_count, [], parent  # Return parent-child relationships even if no path found
-
+                time.sleep(0.1)  # Add a delay for neighbor expansion visualization
 
 
-
-"""         GREEDY BEST-FIRST SEARCH (GBFS)         """
-# Heuristic function (Manhattan distance)
-def manhattan_distance(node, goal):
-    """Calculate the Manhattan distance from the current node to the goal."""
-    return abs(node[0] - goal[0]) + abs(node[1] - goal[1])
-
-# Greedy Best-First Search (GBFS)
 """         GREEDY BEST-FIRST SEARCH (GBFS)         """
 def gbfs(marker, goals, walls, rows, cols, canvas, cell_size, tree_canvas):
     """Greedy Best-First Search implementation with visualization."""
@@ -208,10 +122,10 @@ def gbfs(marker, goals, walls, rows, cols, canvas, cell_size, tree_canvas):
     node_count = 0
     directions = []
 
-    # Visualize the initial marker
+    # Create the yellow square
+    yellow_square = create_yellow_square(canvas, marker[0], marker[1], cell_size)
     highlight_cell(canvas, marker, cell_size, "yellow")
     canvas.update()
-    time.sleep(0.5)  # Initial delay for better visibility
 
     while open_list:
         _, current = heapq.heappop(open_list)
@@ -220,9 +134,16 @@ def gbfs(marker, goals, walls, rows, cols, canvas, cell_size, tree_canvas):
         # Highlight the current node as visited
         highlight_cell(canvas, current, cell_size, "lightgray")
         canvas.update()
-        time.sleep(0.1)  # Delay for animation effect
+
+        # Move the yellow square to the current node
+        move_yellow_square(canvas, yellow_square, current[0], current[1], cell_size)
+
+        time.sleep(0.1)  # Add a delay for better visualization
 
         if current in goals:
+            # Remove the yellow square before playing the final path animation
+            canvas.delete(yellow_square)
+            
             # Backtrack to find the path
             path = []
             while current:
@@ -248,19 +169,10 @@ def gbfs(marker, goals, walls, rows, cols, canvas, cell_size, tree_canvas):
                 # Highlight the neighbors being considered
                 highlight_cell(canvas, neighbor, cell_size, "lightgreen")
                 canvas.update()
-                time.sleep(0.1)  # Delay for neighbor visualization
 
                 # Render the search tree dynamically
                 render_search_tree(came_from, tree_canvas)
-
-    print("No path to the goal was found.")
-    return None, node_count, directions, came_from  # No path found, return parent dict
-
-
-
-
-
-
+                time.sleep(0.1)  # Add a delay for neighbor visualization
 
 """         A* SEARCH         """
 def a_star(marker, goals, walls, rows, cols, canvas, cell_size, tree_canvas):
@@ -274,6 +186,11 @@ def a_star(marker, goals, walls, rows, cols, canvas, cell_size, tree_canvas):
     node_count = 0
     directions = []
 
+    # Create the yellow square
+    yellow_square = create_yellow_square(canvas, marker[0], marker[1], cell_size)
+    highlight_cell(canvas, marker, cell_size, "yellow")
+    canvas.update()
+
     while open_list:
         # Get the node with the lowest f_score
         current = heapq.heappop(open_list)[1]
@@ -281,11 +198,18 @@ def a_star(marker, goals, walls, rows, cols, canvas, cell_size, tree_canvas):
 
         # Highlight the current node as visited (in light gray)
         highlight_cell(canvas, current, cell_size, "lightgray")
-        canvas.update()  # Update the canvas for animation
+        canvas.update()
+
+        # Move the yellow square to the current node
+        move_yellow_square(canvas, yellow_square, current[0], current[1], cell_size)
+
         time.sleep(0.1)  # Add a delay for better visualization
 
         # Check if the current node is a goal
         if current in goals:
+            # Remove the yellow square before playing the final path animation
+            canvas.delete(yellow_square)
+            
             # Backtrack to find the path
             path = []
             while current:
@@ -316,16 +240,16 @@ def a_star(marker, goals, walls, rows, cols, canvas, cell_size, tree_canvas):
                 # Highlight the neighbor for visualization
                 highlight_cell(canvas, neighbor, cell_size, "lightgreen")
                 canvas.update()
-                time.sleep(0.1)  # Add a delay for neighbor visualization
 
                 # Render the search tree dynamically
                 render_search_tree(came_from, tree_canvas)
-
-    print("No path to the goal was found.")
-    return None, node_count, directions, came_from  # No path found
+                time.sleep(0.1)  # Add a delay for neighbor visualization
 
 
-
+# Heuristic function (Manhattan distance)
+def manhattan_distance(node, goal):
+    """Calculate the Manhattan distance from the current node to the goal."""
+    return abs(node[0] - goal[0]) + abs(node[1] - goal[1])
 
 def get_neighbors(cell, walls, rows, cols):
     """Get valid neighbors of a cell (UP, LEFT, DOWN, RIGHT) that are not walls."""
@@ -410,4 +334,3 @@ def highlight_final_path(canvas, path, cell_size):
 
         # Update the previous position to the current midpoint
         previous_position = (x_mid, y_mid)
-

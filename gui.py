@@ -42,6 +42,7 @@ def create_grid_window(rows, cols, marker, goals, walls, method, cell_size=50):
     # Configure grid layout to allow dynamic scaling
     window.grid_rowconfigure(0, weight=1)
     window.grid_rowconfigure(1, weight=1)
+    window.grid_rowconfigure(2, weight=1)  # New row for buttons
     window.grid_columnconfigure(0, weight=1)
     window.grid_columnconfigure(1, weight=1)
 
@@ -75,36 +76,63 @@ def create_grid_window(rows, cols, marker, goals, walls, method, cell_size=50):
     
     add_zoom_and_pan(tree_canvas)  # Add zoom and pan to the search tree canvas
 
-    create_grid(grid_canvas, rows, cols, markers=[marker], goals=goals, walls=walls)
+    def run_search():
+        """Run the selected search algorithm and update the visualizations."""
+        # Clear the canvases and output text
+        grid_canvas.delete("all")
+        tree_canvas.delete("all")
+        output_text.delete("1.0", tk.END)
 
-    # Run the selected search algorithm
-    if method == "DFS":
-        path, node_count, directions, parent = dfs(marker, goals, walls, rows, cols, grid_canvas, cell_size, tree_canvas)
-    elif method == "BFS":
-        path, node_count, directions, parent = bfs(marker, goals, walls, rows, cols, grid_canvas, cell_size, tree_canvas)
-    elif method == "GBFS":
-        path, node_count, directions, parent = gbfs(marker, goals, walls, rows, cols, grid_canvas, cell_size, tree_canvas)
-    elif method == "AS":
-        path, node_count, directions, parent = a_star(marker, goals, walls, rows, cols, grid_canvas, cell_size, tree_canvas)
-    else:
-        output_text.insert(tk.END, f"Method '{method}' not supported.\n")
-        return
+        # Recreate the grid
+        create_grid(grid_canvas, rows, cols, markers=[marker], goals=goals, walls=walls)
 
-    if path:
-        highlight_final_path(grid_canvas, path, cell_size)
-        yellow_square = create_yellow_square(grid_canvas, marker[0], marker[1], cell_size)
-        animate_path(grid_canvas, yellow_square, path)
+        # Run the selected search algorithm
+        if method == "DFS":
+            path, node_count, directions, parent = dfs(marker, goals, walls, rows, cols, grid_canvas, cell_size, tree_canvas)
+        elif method == "BFS":
+            path, node_count, directions, parent = bfs(marker, goals, walls, rows, cols, grid_canvas, cell_size, tree_canvas)
+        elif method == "GBFS":
+            path, node_count, directions, parent = gbfs(marker, goals, walls, rows, cols, grid_canvas, cell_size, tree_canvas)
+        elif method == "AS":
+            path, node_count, directions, parent = a_star(marker, goals, walls, rows, cols, grid_canvas, cell_size, tree_canvas)
+        else:
+            output_text.insert(tk.END, f"Method '{method}' not supported.\n")
+            return
 
-        # Render the final search tree (if needed)
-        render_search_tree(parent, tree_canvas)
+        if path:
+            highlight_final_path(grid_canvas, path, cell_size)
+            yellow_square = create_yellow_square(grid_canvas, marker[0], marker[1], cell_size)
+            animate_path(grid_canvas, yellow_square, path)
 
-        # Display the output information
-        goal_reached = path[-1]
-        output_text.insert(tk.END, f"Search Strategy: {method}\n")
-        output_text.insert(tk.END, f"Goal Reached: {goal_reached}\n")
-        output_text.insert(tk.END, f"Number of Nodes to Reach Goal: {node_count}\n")
-        output_text.insert(tk.END, f"Final Path to Goal: {', '.join(directions)}\n")
-    else:
-        output_text.insert(tk.END, "No path to the goal was found.\n")
+            # Render the final search tree (if needed)
+            render_search_tree(parent, tree_canvas)
+
+            # Display the output information
+            goal_reached = path[-1]
+            output_text.insert(tk.END, f"Search Strategy: {method}\n")
+            output_text.insert(tk.END, f"Goal Reached: {goal_reached}\n")
+            output_text.insert(tk.END, f"Number of Nodes to Reach Goal: {node_count}\n")
+            output_text.insert(tk.END, f"Final Path to Goal: {', '.join(directions)}\n")
+        else:
+            output_text.insert(tk.END, "No path to the goal was found.\n")
+
+    # Frame for buttons
+    button_frame = tk.Frame(window)
+    button_frame.grid(row=2, column=0, sticky="ew", padx=10, pady=10)
+
+    # Button labels and their corresponding commands
+    button_commands = {
+        "Next Step": None,  # Placeholder for the next step function
+        "Previous Step": None,  # Placeholder for the previous step function
+        "Start Over": run_search
+    }
+
+    # Create and add buttons to the frame
+    for label, command in button_commands.items():
+        button = tk.Button(button_frame, text=label, command=command)
+        button.pack(side=tk.LEFT, padx=5)
+
+    # Initial run of the search algorithm
+    run_search()
 
     window.mainloop()
