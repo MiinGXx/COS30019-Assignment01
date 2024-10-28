@@ -196,28 +196,40 @@ def gbfs(marker, goals, walls, rows, cols, canvas, cell_size, tree_canvas):
 
 """         A* SEARCH         """
 def a_star(marker, goals, walls, rows, cols, canvas, cell_size, tree_canvas):
-    """A* search algorithm implementation with visualized visited nodes."""
-    open_list = []  # Priority queue for nodes to be evaluated
-    heapq.heappush(open_list, (0, marker))  # Push the starting marker with a priority of 0
-    came_from = {marker: None}  # Track parent-child relationships
-    g_score = {marker: 0}  # Cost from start to current node
-    f_score = {marker: manhattan_distance(marker, goals[0])}  # Estimated total cost from start to goal
-    visited = set()
-    node_count = 0
-    directions = []
+    """Perform A* Search with visualized search tree changes and node tracking."""
+    # Priority queue for A* (min-heap), using f(n) and g(n) for tie-breaking
+    priority_queue = []
+    heapq.heappush(priority_queue, (0, 0, marker))  # (f(n), g(n), position)
+    
+    # To reconstruct the path
+    came_from = {marker: None}
+    
+    # Cost from start to current node
+    g_score = {marker: 0}  
+    # Total cost
+    f_score = {marker: manhattan_distance(marker, goals[0])}  
+    
+    node_count = 0  # Counter for nodes created
+    visited = set()  # Set to keep track of visited nodes
     steps = []  # To store each step
 
-    # Create the yellow square
+    # Create the yellow square for visualizing movement
     yellow_square = create_yellow_square(canvas, marker[0], marker[1], cell_size)
     highlight_cell(canvas, marker, cell_size, "yellow")
     canvas.update()
 
-    while open_list:
-        # Get the node with the lowest f_score
-        current = heapq.heappop(open_list)[1]
-        node_count += 1
+    while priority_queue:
+        # Get the node with the lowest f(n), breaking ties with g(n)
+        current_f, current_g, current = heapq.heappop(priority_queue)
 
-        # Store the current step
+        # Mark the current node as visited
+        if current in visited:
+            continue
+        
+        visited.add(current)
+        node_count += 1  # Increment the node counter
+
+        # Store the current step for visualization
         steps.append(('move', current))
 
         # Highlight the current node as visited (in light gray)
@@ -235,32 +247,32 @@ def a_star(marker, goals, walls, rows, cols, canvas, cell_size, tree_canvas):
             # Remove the yellow square before playing the final path animation
             canvas.delete(yellow_square)
             
-            # Backtrack to find the path
+            # Reconstruct the path
             path = []
-            while current:
+            while current is not None:
                 path.append(current)
-                current = came_from.get(current)
-            path.reverse()
+                current = came_from[current]
+            path.reverse()  # Reverse the path to get from start to goal
 
             # Convert path to directions (up, left, down, right)
             directions = convert_path_to_directions(path)
             return path, node_count, directions, came_from, steps  # Return the steps
-
-        # Explore neighbors
+        
+        # Get neighbors using the provided get_neighbors function
         neighbors = get_neighbors(current, walls, rows, cols)
-        for neighbor in neighbors:
-            tentative_g_score = g_score[current] + 1  # Assume cost to neighbor is 1
 
-            # If the neighbor is not visited or found a better path
-            if tentative_g_score < g_score.get(neighbor, float('inf')):
-                came_from[neighbor] = current  # Track parent-child relationship
+        for neighbor in neighbors:
+            tentative_g_score = g_score[current] + 1  # Assume cost from current to neighbor is 1
+            
+            if neighbor not in g_score or tentative_g_score < g_score[neighbor]:
+                # This path to neighbor is better than any previous one
+                came_from[neighbor] = current
                 g_score[neighbor] = tentative_g_score
                 f_score[neighbor] = tentative_g_score + manhattan_distance(neighbor, goals[0])
 
-                # If the neighbor is not already in the open list, add it
                 if neighbor not in visited:
-                    visited.add(neighbor)
-                    heapq.heappush(open_list, (f_score[neighbor], neighbor))
+                    # Push (f(n), g(n), neighbor) to the priority queue
+                    heapq.heappush(priority_queue, (f_score[neighbor], g_score[neighbor], neighbor))
 
                 # Highlight the neighbor for visualization
                 highlight_cell(canvas, neighbor, cell_size, "lightgreen")
@@ -272,7 +284,10 @@ def a_star(marker, goals, walls, rows, cols, canvas, cell_size, tree_canvas):
                 steps.append(('tree_update', came_from))  # Save the tree update
                 time.sleep(0.1)  # Add a delay for neighbor visualization
 
-    return None, node_count, [], came_from, steps  # Return the steps
+    # If the priority queue is empty and no goal was found
+    return None, node_count, [], came_from, steps  # Return None for path and the node count
+
+
 
 # Heuristic function (Manhattan distance)
 def manhattan_distance(node, goal):
