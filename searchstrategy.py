@@ -287,7 +287,187 @@ def a_star(marker, goals, walls, rows, cols, canvas, cell_size, tree_canvas):
     # If the priority queue is empty and no goal was found
     return None, node_count, [], came_from, steps  # Return None for path and the node count
 
+def dls(marker, goals, walls, rows, cols, depth_limit, canvas, cell_size, tree_canvas, steps, parent):
+    stack = [(marker, [marker], 0)]
+    visited = set()
+    highlighted_nodes = set()  # Track highlighted nodes
 
+    # Create the yellow square for visualizing movement
+    yellow_square = create_yellow_square(canvas, marker[0], marker[1], cell_size)
+    highlight_cell(canvas, marker, cell_size, "yellow")
+    canvas.update()
+
+    while stack:
+        (current, path, depth) = stack.pop()
+        
+        if current in visited:
+            continue
+        visited.add(current)
+        highlighted_nodes.add(current)  # Track this node for clearing later
+
+        steps.append(('move', current))
+        highlight_cell(canvas, current, cell_size, "lightgray")
+        canvas.update()
+        move_yellow_square(canvas, yellow_square, current[0], current[1], cell_size)
+        steps.append(('highlight', current, "lightgray"))
+        time.sleep(0)  # Add a delay for better visualization
+
+        if current in goals:
+            directions = convert_path_to_directions(path)
+            canvas.delete(yellow_square)
+            return path, directions, steps, highlighted_nodes  # Found the goal
+
+        if depth < depth_limit:
+            for neighbor in get_neighbors(current, walls, rows, cols):
+                if neighbor not in visited:
+                    stack.append((neighbor, path + [neighbor], depth + 1))
+                    parent[neighbor] = current
+                    steps.append(('highlight', neighbor, "lightgreen")) 
+                    highlighted_nodes.add(neighbor)  # Track for clearing
+
+                    # Render the search tree dynamically
+                    render_search_tree(parent, tree_canvas)
+                    steps.append(('tree_update', parent.copy()))  # Save the tree update
+
+    return None, None, steps, highlighted_nodes  # Goal not found
+
+def iddfs(marker, goals, walls, rows, cols, canvas, cell_size, tree_canvas):
+    steps = []
+    parent = {marker: None}
+    depth = 0
+    iteration_count = 0
+    total_nodes_expanded = 0
+    final_iteration_nodes = 0
+
+    while True:
+        iteration_count += 1  # Increment iteration counter
+
+        # Run DLS for the current depth limit
+        path, directions, steps, highlighted_nodes = dls(marker, goals, walls, rows, cols, depth, canvas, cell_size, tree_canvas, steps, parent)
+        
+        # Count nodes expanded in this iteration
+        nodes_expanded = len(highlighted_nodes)
+        total_nodes_expanded += nodes_expanded
+
+        if path:
+            # If the goal is found, the final iteration node count is the nodes expanded in this depth
+            final_iteration_nodes = nodes_expanded
+            highlight_final_path(canvas, path, cell_size)
+            return path, len(steps), directions, parent, steps, iteration_count, total_nodes_expanded, final_iteration_nodes
+
+        # Clear highlights before the next depth iteration
+        clear_highlights(canvas, highlighted_nodes, cell_size)
+        canvas.delete("yellow_square")  # Remove the yellow square
+        depth += 1  # Increase depth limit
+
+        # Render the search tree dynamically after each depth iteration
+        render_search_tree(parent, tree_canvas)
+        steps.append(('tree_update', parent.copy()))  # Save the tree update
+        time.sleep(0.1)  # Add a delay for better visualization
+
+def weighted_astar(marker, goals, walls, rows, cols, canvas, cell_size, tree_canvas, weight):
+    """Perform Weighted A* Search with visualized search tree changes and node tracking."""
+    # Priority queue for A* (min-heap), using f(n) and g(n) for tie-breaking
+    priority_queue = []
+    heapq.heappush(priority_queue, (0, 0, marker))  # (f(n), g(n), position)
+    
+    # To reconstruct the path
+    came_from = {marker: None}
+    
+    # Cost from start to current node
+    g_score = {marker: 0}  
+    # Total cost
+    f_score = {marker: weight * manhattan_distance(marker, goals[0])}  
+    
+    node_count = 0  # Counter for nodes created
+    visited = set()  # Set to keep track of visited nodes
+    steps = []  # To store each step
+
+    # Create the yellow square for visualizing movement
+    yellow_square = create_yellow_square(canvas, marker[0], marker[1], cell_size)
+    highlight_cell(canvas, marker, cell_size, "yellow")
+    canvas.update()
+
+    while priority_queue:
+        # Get the node with the lowest f(n), breaking ties with g(n)
+        current_f, current_g, current = heapq.heappop(priority_queue)
+
+        # Mark the current node as visited
+        if current in visited:
+            continue
+        
+        visited.add(current)
+        node_count += 1  # Increment the node counter
+
+        # Store the current step for visualization
+        steps.append(('move', current))
+
+        # Highlight the current node as visited (in light gray)
+        highlight_cell(canvas, current, cell_size, "lightgray")
+        canvas.update()
+
+        # Move the yellow square to the current node
+        move_yellow_square(canvas, yellow_square, current[0], current[1], cell_size)
+        steps.append(('highlight', current, "lightgray"))  # Save the highlighted step
+
+        time.sleep(0.1)  # Add a delay for better visualization
+
+        # Check if the current node is a goal
+        if current in goals:
+            # Remove the yellow square before playing the final path animation
+            canvas.delete(yellow_square)
+            
+            # Reconstruct the path
+            path = []
+            while current is not None:
+                path.append(current)
+                current = came_from[current]
+            path.reverse()  # Reverse the path to get from start to goal
+
+            # Convert path to directions (up, left, down, right)
+            directions = convert_path_to_directions(path)
+            return path, node_count, directions, came_from, steps  # Return the steps
+        
+        # Get neighbors using the provided get_neighbors function
+        neighbors = get_neighbors(current, walls, rows, cols)
+
+        for neighbor in neighbors:
+            tentative_g_score = g_score[current] + 1
+
+            if neighbor not in g_score or tentative_g_score < g_score[neighbor]:
+                # This path to neighbor is better than any previous one
+                came_from[neighbor] = current
+                g_score[neighbor] = tentative_g_score
+                f_score[neighbor] = g_score[neighbor] + weight * manhattan_distance(neighbor, goals[0])
+
+                if neighbor not in visited:
+                    # Push (f(n), g(n), neighbor) to the priority queue
+                    heapq.heappush(priority_queue, (f_score[neighbor], g_score[neighbor], neighbor))
+
+                # Highlight the neighbor for visualization
+                highlight_cell(canvas, neighbor, cell_size, "lightgreen")
+                steps.append(('highlight', neighbor, "lightgreen"))
+                canvas.update()
+
+                # Render the search tree dynamically
+                render_search_tree(came_from, tree_canvas)
+                steps.append(('tree_update', came_from))  # Save the tree update
+                time.sleep(0.1)  # Add a delay for neighbor visualization
+
+    # If the priority queue is empty and no goal was found
+    return None, node_count, [], came_from, steps  # Return None for path and the node count
+
+
+
+
+
+        
+
+def clear_highlights(canvas, highlighted_nodes, cell_size):
+    """Clear all highlighted nodes by resetting them to white."""
+    for position in highlighted_nodes:
+        highlight_cell(canvas, position, cell_size, "white")  # Reset each cell to white
+    canvas.update()
 
 # Heuristic function (Manhattan distance)
 def manhattan_distance(node, goal):

@@ -1,13 +1,14 @@
 import tkinter as tk
 from grid import create_grid, create_yellow_square, animate_path, move_yellow_square
-from searchstrategy import dfs, bfs, gbfs, a_star, highlight_final_path, highlight_cell
+from searchstrategy import dfs, bfs, gbfs, a_star, iddfs, weighted_astar, highlight_final_path, highlight_cell
 from search_tree import render_search_tree
 
 # Global variables for storing the current state
 state = {
     "steps": [],
     "yellow_square": None,
-    "current_step": -1
+    "current_step": -1,
+    "search_completed": False  # To track when the search is complete
 }
 
 def add_zoom_and_pan(canvas):
@@ -75,8 +76,6 @@ def next_step(canvas, tree_canvas, rows, cols, marker, goals, walls, cell_size):
             canvas.update()  # Ensure the tree update is immediately rendered
             # Continue loop, as tree update may not be visually noticeable
 
-
-
 def previous_step(canvas, tree_canvas, cell_size):
     """Backtrack one step in the search process."""
     global state
@@ -98,14 +97,6 @@ def previous_step(canvas, tree_canvas, cell_size):
 
         canvas.update()  # Update the canvas after backtracking
 
-# Global variables for storing the current state
-state = {
-    "steps": [],
-    "yellow_square": None,
-    "current_step": -1,
-    "search_completed": False  # To track when the search is complete
-}
-
 def reset_grid(canvas, tree_canvas, rows, cols, marker, goals, walls, cell_size):
     """Reset the grid and search tree canvas, clearing all highlights and returning to the initial state."""
     global state
@@ -124,7 +115,7 @@ def reset_grid(canvas, tree_canvas, rows, cols, marker, goals, walls, cell_size)
     canvas.update()
     tree_canvas.update()
 
-def create_grid_window(rows, cols, marker, goals, walls, method, cell_size=50):
+def create_grid_window(rows, cols, marker, goals, walls, method, weight=None, cell_size=50):
     window = tk.Tk()
     window.title("Grid and Search Tree Visualization")
 
@@ -185,10 +176,25 @@ def create_grid_window(rows, cols, marker, goals, walls, method, cell_size=50):
             path, node_count, directions, parent, steps = gbfs(marker, goals, walls, rows, cols, grid_canvas, cell_size, tree_canvas)
         elif method == "AS":
             path, node_count, directions, parent, steps = a_star(marker, goals, walls, rows, cols, grid_canvas, cell_size, tree_canvas)
+        elif method == "IDDFS":
+            result = iddfs(marker, goals, walls, rows, cols, grid_canvas, cell_size, tree_canvas)
+            if result:
+                path, node_count, directions, parent, steps, iteration_count, total_nodes_expanded, final_iteration_nodes = result
+                # Display additional metrics specific to IDDFS
+                output_text.insert(tk.END, f"Search Strategy: IDDFS\n")
+                output_text.insert(tk.END, f"Goal Reached: {path[-1]}\n")
+                output_text.insert(tk.END, f"Total Number of Nodes Expanded: {total_nodes_expanded}\n")
+                output_text.insert(tk.END, f"Number of Iterations: {iteration_count}\n")
+                output_text.insert(tk.END, f"Total Nodes in Final Iteration: {final_iteration_nodes}\n")
+                output_text.insert(tk.END, f"Final Path to Goal: {', '.join(directions)}\n")
+                return  # Exit function after displaying IDDFS results
+        elif method == "WAS":
+            path, node_count, directions, parent, steps = weighted_astar(marker, goals, walls, rows, cols, grid_canvas, cell_size, tree_canvas, weight)
         else:
             output_text.insert(tk.END, f"Method '{method}' not supported.\n")
             return
 
+        # If a path was found, highlight the path and update the output for other algorithms
         if path:
             highlight_final_path(grid_canvas, path, cell_size)
             state["yellow_square"] = create_yellow_square(grid_canvas, marker[0], marker[1], cell_size)
@@ -197,7 +203,7 @@ def create_grid_window(rows, cols, marker, goals, walls, method, cell_size=50):
             # Render the final search tree (if needed)
             render_search_tree(parent, tree_canvas)
 
-            # Display the output information
+            # Display the output information for other methods
             goal_reached = path[-1]
             output_text.insert(tk.END, f"Search Strategy: {method}\n")
             output_text.insert(tk.END, f"Goal Reached: {goal_reached}\n")
@@ -229,5 +235,3 @@ def create_grid_window(rows, cols, marker, goals, walls, method, cell_size=50):
     run_search()
 
     window.mainloop()
-
-

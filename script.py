@@ -44,18 +44,27 @@ def parse_input_file(input_file):
         sys.exit(1)
 
 def main():
-    if len(sys.argv) != 3:
-        print("Usage: python script.py <input_file> <method>")
+    if len(sys.argv) < 3 or (sys.argv[2].upper() == "WAS" and len(sys.argv) != 4):
+        print("Usage: python script.py <input_file> <method> [weight]")
         sys.exit(1)
 
-    input_file = sys.argv[1] # Input file containing the grid data
-    method = sys.argv[2].upper() # Search method to use (e.g., DFS, BFS, etc.)
+    input_file = sys.argv[1]  # Input file containing the grid data
+    method = sys.argv[2].upper()  # Search method to use (e.g., DFS, BFS, etc.)
 
     # Parse the input file
     rows, cols, marker, goals, walls = parse_input_file(input_file)
 
+    # If Weighted A* is chosen, ensure a weight is provided
+    weight = None
+    if method == "WAS":
+        try:
+            weight = float(sys.argv[3])
+        except (IndexError, ValueError):
+            print("Error: Weighted A* requires an integer weight as the third argument.")
+            sys.exit(1)
+
     # Create and display the grid in the GUI
-    create_grid_window(rows, cols, marker, goals, walls, method)
+    create_grid_window(rows, cols, marker, goals, walls, method, weight)
 
 if __name__ == "__main__":
     main()
