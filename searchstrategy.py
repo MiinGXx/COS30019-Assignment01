@@ -339,7 +339,7 @@ def iddfs(marker, goals, walls, rows, cols, canvas, cell_size, find_multiple_pat
 
     # Run IDDFS for each goal independently if find_multiple_paths is True
     while remaining_goals:
-        for depth in range(0, 100):  # Arbitrary depth limit, can be adjusted
+        for depth in range(0, 1000):  # Arbitrary depth limit, can be adjusted
             iterations += 1  # Increment iteration count
             # Perform Depth-Limited Search (DLS) for the current starting point
             path, new_directions, new_steps, found_goals, highlighted_nodes = dls(
@@ -398,7 +398,8 @@ def dls(node, goals, walls, rows, cols, depth_limit, canvas, cell_size, find_mul
         highlighted_nodes.append(rect_id)
         move_yellow_square(canvas, yellow_square, current[0], current[1], cell_size)
         canvas.update()
-        time.sleep(0.001)
+        time.sleep(0.01)
+
 
         # Check if current node is a goal
         if current in remaining_goals:
@@ -420,7 +421,8 @@ def dls(node, goals, walls, rows, cols, depth_limit, canvas, cell_size, find_mul
                 )
                 highlighted_nodes.append(rect_id)
                 canvas.update()
-                time.sleep(0.001)
+                time.sleep(0.01)
+
 
     # Clean up and return if no goal was found within depth limit
     canvas.delete(yellow_square)
