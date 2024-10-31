@@ -1,0 +1,4 @@
+[3,3]
+(0,0)  // Start position
+(2,2)  // Goal position
+(1,1,1,1)
