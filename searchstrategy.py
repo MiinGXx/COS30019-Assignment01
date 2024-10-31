@@ -3,58 +3,96 @@ import heapq
 from collections import deque
 from grid import create_yellow_square, move_yellow_square, highlight_final_path
 
+
 def dfs(marker, goals, walls, rows, cols, canvas, cell_size, find_multiple_paths=False):
-    stack = [(marker, [marker])]
-    visited = set()
-    parent = {marker: None}
+    full_path = []
     node_count = 0
     steps = []
-
     remaining_goals = set(goals)
-    yellow_square = create_yellow_square(canvas, marker[0], marker[1], cell_size)
+    highlighted_nodes = []
+    global_visited = set()  # Global set to keep track of all visited nodes
 
-    while stack:
-        current, path = stack.pop()
+    while remaining_goals:
+        stack = [(marker, [marker])]
+        visited = set()
+        parent = {marker: None}
+        yellow_square = create_yellow_square(canvas, marker[0], marker[1], cell_size)
 
-        if current in visited:
-            continue
-        visited.add(current)
-        node_count += 1
-        steps.append(('move', current))
+        while stack:
+            current, path = stack.pop()
 
-        # Move yellow square and highlight the current node as visited (lightgray)
-        canvas.create_rectangle(current[0] * cell_size, current[1] * cell_size,
-                                (current[0] + 1) * cell_size, (current[1] + 1) * cell_size,
-                                fill="lightgray", outline="black")
-        canvas.update()
-        move_yellow_square(canvas, yellow_square, current[0], current[1], cell_size)
-        time.sleep(0.05)
+            if current in visited:
+                continue
+            visited.add(current)
+            global_visited.add(current)
+            node_count += 1
+            steps.append(('move', current))
 
-        # Goal check
-        if current in remaining_goals:
-            remaining_goals.remove(current)
-            # remove the yellow square if the goal is reached
-            canvas.delete(yellow_square)
+            # Move yellow square and highlight visited node in light gray
+            rect_id = canvas.create_rectangle(
+                current[0] * cell_size, current[1] * cell_size,
+                (current[0] + 1) * cell_size, (current[1] + 1) * cell_size,
+                fill="lightgray", outline="black"
+            )
+            highlighted_nodes.append(rect_id)
+            move_yellow_square(canvas, yellow_square, current[0], current[1], cell_size)
+            canvas.update()
+            time.sleep(0.01)
 
-            if not find_multiple_paths or not remaining_goals:
-                path = reconstruct_path(parent, current)
-                directions = convert_path_to_directions(path)
-                return path, node_count, directions, parent, steps
+            # Goal check
+            if current in remaining_goals:
+                remaining_goals.remove(current)
+                canvas.delete(yellow_square)
 
-        # Expand neighbors
-        neighbors = get_neighbors(current, walls, rows, cols)
-        for neighbor in neighbors:
-            if neighbor not in visited:
-                stack.append((neighbor, path + [neighbor]))
-                parent[neighbor] = current
-                # Highlight expanded node in light green
-                canvas.create_rectangle(neighbor[0] * cell_size, neighbor[1] * cell_size,
-                                        (neighbor[0] + 1) * cell_size, (neighbor[1] + 1) * cell_size,
-                                        fill="lightgreen", outline="black")
-                canvas.update()
-                time.sleep(0.05)
+                # Accumulate the path to this goal
+                if full_path and full_path[-1] == path[0]:
+                    full_path.extend(path[1:])
+                else:
+                    full_path.extend(path)
 
-    return None, node_count, [], parent, steps
+                # If not finding multiple paths, exit after reaching the first goal
+                if not find_multiple_paths:
+                    directions = convert_path_to_directions(full_path)
+                    return full_path, node_count, directions, parent, steps
+
+                # Clear the highlighted nodes
+                for node_id in highlighted_nodes:
+                    canvas.delete(node_id)
+                highlighted_nodes.clear()
+
+                # Reset for the next goal
+                marker = current  # Start next search from the current goal
+                break  # Exit the inner while loop to start the next search
+
+            # Expand neighbors
+            neighbors = get_neighbors(current, walls, rows, cols)
+            for neighbor in neighbors:
+                if neighbor not in visited:
+                    stack.append((neighbor, path + [neighbor]))
+                    parent[neighbor] = current
+                    # Highlight expanded node in light green
+                    rect_id = canvas.create_rectangle(
+                        neighbor[0] * cell_size, neighbor[1] * cell_size,
+                        (neighbor[0] + 1) * cell_size, (neighbor[1] + 1) * cell_size,
+                        fill="lightgreen", outline="black"
+                    )
+                    highlighted_nodes.append(rect_id)
+                    canvas.update()
+                    time.sleep(0.01)
+        else:
+            # If stack is empty and goals remain, but no path is found
+            if remaining_goals:
+                print("No path found to remaining goals.")
+                directions = convert_path_to_directions(full_path)
+                return full_path, node_count, directions, parent, steps
+
+    canvas.delete(yellow_square)
+    directions = convert_path_to_directions(full_path)
+    return full_path, node_count, directions, parent, steps
+
+
+
+
 
 def bfs(marker, goals, walls, rows, cols, canvas, cell_size, find_multiple_paths=False):
     queue = deque([(marker, [marker])])
@@ -83,7 +121,7 @@ def bfs(marker, goals, walls, rows, cols, canvas, cell_size, find_multiple_paths
         highlighted_nodes.append(rect_id)
         canvas.update()
         move_yellow_square(canvas, yellow_square, current[0], current[1], cell_size)
-        time.sleep(0.05)
+        time.sleep(0.01)
 
         # Goal check
         if current in remaining_goals:
@@ -123,7 +161,7 @@ def bfs(marker, goals, walls, rows, cols, canvas, cell_size, find_multiple_paths
                                                   fill="lightgreen", outline="black")
                 highlighted_nodes.append(rect_id)
                 canvas.update()
-                time.sleep(0.05)
+                time.sleep(0.01)
 
     canvas.delete(yellow_square)
     directions = convert_path_to_directions(full_path)
@@ -161,7 +199,7 @@ def gbfs(marker, goals, walls, rows, cols, canvas, cell_size, find_multiple_path
 
         move_yellow_square(canvas, yellow_square, current[0], current[1], cell_size)
         canvas.update()
-        time.sleep(0.05)
+        time.sleep(0.01)
 
         # Goal check
         if current in remaining_goals:
@@ -202,7 +240,7 @@ def gbfs(marker, goals, walls, rows, cols, canvas, cell_size, find_multiple_path
                                                       fill="lightgreen", outline="black")
                     highlighted_nodes.append(rect_id)
                     canvas.update()
-                    time.sleep(0.05)
+                    time.sleep(0.01)
 
     canvas.delete(yellow_square)    
     directions = convert_path_to_directions(full_path)
@@ -420,7 +458,7 @@ def weighted_astar(marker, goals, walls, rows, cols, canvas, cell_size, weight, 
         highlighted_nodes.append(rect_id)
         move_yellow_square(canvas, yellow_square, current[0], current[1], cell_size)
         canvas.update()
-        time.sleep(0.05)
+        time.sleep(0.01)
 
         # Goal check
         if current in remaining_goals:
@@ -466,7 +504,7 @@ def weighted_astar(marker, goals, walls, rows, cols, canvas, cell_size, weight, 
                                                   fill="lightgreen", outline="black")
                 highlighted_nodes.append(rect_id)
                 canvas.update()
-                time.sleep(0.05)
+                time.sleep(0.01)
 
     # If all goals are found, return the full path and other details
     directions = convert_path_to_directions(full_path)

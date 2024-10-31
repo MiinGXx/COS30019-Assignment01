@@ -8,11 +8,11 @@ def create_grid_window(rows, cols, marker, goals, walls, method, weight=None, fi
 
     # Canvas for grid visualization
     grid_canvas = tk.Canvas(window, width=cols * cell_size, height=rows * cell_size, bg="white")
-    grid_canvas.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+    grid_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
     # Text widget for displaying output information
     output_text = tk.Text(window, height=10, width=cols * cell_size // 10, font=("Arial", 12), state=tk.DISABLED)
-    output_text.pack(side=tk.TOP, fill=tk.BOTH, expand=True, padx=10, pady=10)
+    output_text.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True, padx=10, pady=10)
 
     def run_search():
         # Clear the canvas and output text
@@ -49,10 +49,6 @@ def create_grid_window(rows, cols, marker, goals, walls, method, weight=None, fi
             else:
                 path, node_count, directions, visited, steps = result
     
-            highlight_final_path(grid_canvas, path, goals, cell_size)  # Ensure path cells, including goals, are blue
-            yellow_square = create_yellow_square(grid_canvas, marker[0], marker[1], cell_size)
-            animate_path(grid_canvas, yellow_square, path, cell_size)
-    
             # Output for finding goals
             output_text.insert(tk.END, f"Search Strategy: {method}\n")
             output_text.insert(tk.END, f"Goals Found: {', '.join(map(str, goals))}\n")
@@ -60,6 +56,18 @@ def create_grid_window(rows, cols, marker, goals, walls, method, weight=None, fi
                 output_text.insert(tk.END, f"Number of Iterations: {iterations}\n")
             output_text.insert(tk.END, f"Number of Nodes Visited: {node_count}\n")
             output_text.insert(tk.END, f"Path to Goals: {', '.join(directions)}\n")
+
+            print(f"Search Strategy: {method}")
+            print(f"Goals Found: {', '.join(map(str, goals))}")
+            if method == "IDDFS":
+                print(f"Number of Iterations: {iterations}")
+            print(f"Number of Nodes Visited: {node_count}")
+            print(f"Path to Goals: {', '.join(directions)}")
+
+            highlight_final_path(grid_canvas, path, goals, cell_size)  # Ensure path cells, including goals, are blue
+            yellow_square = create_yellow_square(grid_canvas, marker[0], marker[1], cell_size)
+            animate_path(grid_canvas, yellow_square, path, cell_size)
+    
         else:
             output_text.insert(tk.END, "No path found.\n")
     
