@@ -57,7 +57,7 @@ def move_yellow_square(canvas, yellow_square, col, row, cell_size):
     canvas.update()
 
     
-def animate_path(canvas, yellow_square, path, cell_size=50, delay=200):
+def animate_path(canvas, yellow_square, path, cell_size=50, delay=1):
     """Animate the yellow square along the path and stop once the goal is reached."""
     for index, (col, row) in enumerate(path):
         x1 = col * cell_size + 10 / 2

@@ -50,19 +50,25 @@ def create_grid_window(rows, cols, marker, goals, walls, method, weight=None, fi
                 path, node_count, directions, visited, steps = result
     
             # Output for finding goals
-            output_text.insert(tk.END, f"Search Strategy: {method}\n")
-            output_text.insert(tk.END, f"Goals Found: {', '.join(map(str, goals))}\n")
-            if method == "IDDFS":
-                output_text.insert(tk.END, f"Number of Iterations: {iterations}\n")
-            output_text.insert(tk.END, f"Number of Nodes Visited: {node_count}\n")
-            output_text.insert(tk.END, f"Path to Goals: {', '.join(directions)}\n")
-
             print(f"Search Strategy: {method}")
-            print(f"Goals Found: {', '.join(map(str, goals))}")
+            if find_multiple_paths:
+                print(f"Goals Found: {', '.join(map(str, goals))}")
+            else:
+                print(f"Goal Found: {goals[0]}")
             if method == "IDDFS":
                 print(f"Number of Iterations: {iterations}")
             print(f"Number of Nodes Visited: {node_count}")
-            print(f"Path to Goals: {', '.join(directions)}")
+            print(f"Path to Goal(s): {', '.join(directions)}")
+
+            output_text.insert(tk.END, f"Search Strategy: {method}\n")
+            if find_multiple_paths:
+                output_text.insert(tk.END, f"Goals Found: {', '.join(map(str, goals))}\n")
+            else:
+                output_text.insert(tk.END, f"Goal Found: {goals[0]}\n")
+            if method == "IDDFS":
+                output_text.insert(tk.END, f"Number of Iterations: {iterations}\n")
+            output_text.insert(tk.END, f"Number of Nodes Visited: {node_count}\n")
+            output_text.insert(tk.END, f"Path to Goal(s): {', '.join(directions)}\n")
 
             highlight_final_path(grid_canvas, path, goals, cell_size)  # Ensure path cells, including goals, are blue
             yellow_square = create_yellow_square(grid_canvas, marker[0], marker[1], cell_size)
