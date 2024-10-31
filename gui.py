@@ -43,7 +43,7 @@ def create_grid_window(rows, cols, marker, goals, walls, method, weight=None, fi
             return
     
         # Display results and highlight the final path
-        if result:
+        if result and (find_multiple_paths or goals[0] in result[0]):
             if method == "IDDFS":
                 path, node_count, directions, visited, steps, iterations= result
             else:
