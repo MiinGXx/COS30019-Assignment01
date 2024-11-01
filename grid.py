@@ -57,7 +57,7 @@ def move_yellow_square(canvas, yellow_square, col, row, cell_size):
     canvas.update()
 
     
-def animate_path(canvas, yellow_square, path, cell_size=50, delay=1):
+def animate_path(canvas, yellow_square, path, cell_size=30, delay=200):
     """Animate the yellow square along the path and stop once the goal is reached."""
     for index, (col, row) in enumerate(path):
         x1 = col * cell_size + 10 / 2
@@ -71,7 +71,7 @@ def animate_path(canvas, yellow_square, path, cell_size=50, delay=1):
             break  # Exit the loop if this is the last cell in the path
         canvas.after(delay)
 
-def highlight_final_path(canvas, path, goals, cell_size=50):
+def highlight_final_path(canvas, path, goals, cell_size=30):
     """Highlight the final path in light blue with a continuous red line across the center."""
     # Fill each cell in the path with light blue, except for goal cells which remain green
     for col, row in path:

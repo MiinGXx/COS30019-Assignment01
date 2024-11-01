@@ -37,7 +37,7 @@ def dfs(marker, goals, walls, rows, cols, canvas, cell_size, find_multiple_paths
             highlighted_nodes.append(rect_id)
             move_yellow_square(canvas, yellow_square, current[0], current[1], cell_size)
             canvas.update()
-            time.sleep(0.01)
+            time.sleep(0.05)
 
             # Goal check
             if current in remaining_goals:
@@ -78,7 +78,7 @@ def dfs(marker, goals, walls, rows, cols, canvas, cell_size, find_multiple_paths
                     )
                     highlighted_nodes.append(rect_id)
                     canvas.update()
-                    time.sleep(0.01)
+                    time.sleep(0.05)
         else:
             # If stack is empty and goals remain, but no path is found
             if remaining_goals:
@@ -121,7 +121,7 @@ def bfs(marker, goals, walls, rows, cols, canvas, cell_size, find_multiple_paths
         highlighted_nodes.append(rect_id)
         canvas.update()
         move_yellow_square(canvas, yellow_square, current[0], current[1], cell_size)
-        time.sleep(0.01)
+        time.sleep(0.05)
 
         # Goal check
         if current in remaining_goals:
@@ -161,7 +161,7 @@ def bfs(marker, goals, walls, rows, cols, canvas, cell_size, find_multiple_paths
                                                   fill="lightgreen", outline="black")
                 highlighted_nodes.append(rect_id)
                 canvas.update()
-                time.sleep(0.01)
+                time.sleep(0.05)
 
     canvas.delete(yellow_square)
     directions = convert_path_to_directions(full_path)
@@ -199,7 +199,7 @@ def gbfs(marker, goals, walls, rows, cols, canvas, cell_size, find_multiple_path
 
         move_yellow_square(canvas, yellow_square, current[0], current[1], cell_size)
         canvas.update()
-        time.sleep(0.01)
+        time.sleep(0.05)
 
         # Goal check
         if current in remaining_goals:
@@ -240,7 +240,7 @@ def gbfs(marker, goals, walls, rows, cols, canvas, cell_size, find_multiple_path
                                                       fill="lightgreen", outline="black")
                     highlighted_nodes.append(rect_id)
                     canvas.update()
-                    time.sleep(0.01)
+                    time.sleep(0.05)
 
     canvas.delete(yellow_square)    
     directions = convert_path_to_directions(full_path)
@@ -280,7 +280,7 @@ def a_star(marker, goals, walls, rows, cols, canvas, cell_size, find_multiple_pa
                                           fill="lightgray", outline="black")
         highlighted_nodes.append(rect_id)
         canvas.update()
-        time.sleep(0.01)
+        time.sleep(0.05)
 
         # Goal check
         if current in remaining_goals:
@@ -324,7 +324,7 @@ def a_star(marker, goals, walls, rows, cols, canvas, cell_size, find_multiple_pa
                                                   fill="lightgreen", outline="black")
                 highlighted_nodes.append(rect_id)
                 canvas.update()
-                time.sleep(0.01)
+                time.sleep(0.05)
 
     directions = convert_path_to_directions(full_path)
     return full_path, node_count, directions, visited, steps
@@ -398,7 +398,7 @@ def dls(node, goals, walls, rows, cols, depth_limit, canvas, cell_size, find_mul
         highlighted_nodes.append(rect_id)
         move_yellow_square(canvas, yellow_square, current[0], current[1], cell_size)
         canvas.update()
-        time.sleep(0.01)
+        time.sleep(0.05)
 
 
         # Check if current node is a goal
@@ -421,74 +421,76 @@ def dls(node, goals, walls, rows, cols, depth_limit, canvas, cell_size, find_mul
                 )
                 highlighted_nodes.append(rect_id)
                 canvas.update()
-                time.sleep(0.01)
+                time.sleep(0.05)
 
 
     # Clean up and return if no goal was found within depth limit
     canvas.delete(yellow_square)
     return None, None, steps, remaining_goals, highlighted_nodes  # Goal not found within depth limit
 
-import heapq
-import time
-from grid import create_yellow_square, move_yellow_square, highlight_final_path
-
 def ida_star(marker, goals, walls, rows, cols, canvas, cell_size, find_multiple_paths=False):
     def search(path, g, bound):
         nonlocal iterations
         iterations += 1  # Increment iteration count for each recursive call
         current = path[-1]
-        h = min(manhattan_distance(current, goal) for goal in remaining_goals)
-        f = g + h  # Total cost f = g + h
+        f = g + min(manhattan_distance(current, goal) for goal in remaining_goals)
         if f > bound:
             return f, None
         if current in remaining_goals:
-            return bound, path
+            return g, path
         min_bound = float('inf')
         for neighbor in get_neighbors(current, walls, rows, cols):
             if neighbor not in path:
                 path.append(neighbor)
-                
-                # Visualization of the expanded node
-                canvas.create_rectangle(neighbor[0] * cell_size, neighbor[1] * cell_size,
-                                        (neighbor[0] + 1) * cell_size, (neighbor[1] + 1) * cell_size,
-                                        fill="lightgreen", outline="black")
-                move_yellow_square(canvas, yellow_square, neighbor[0], neighbor[1], cell_size)
-                canvas.update()
-                time.sleep(0.01)
-                
                 t, result = search(path, g + 1, bound)
                 if result:
                     return t, result
                 if t < min_bound:
                     min_bound = t
-                path.pop()  # Backtrack
+                path.pop()
         return min_bound, None
 
     full_path = []
-    remaining_goals = set(goals)
-    steps = []
     node_count = 0
+    steps = []
     directions = []
     iterations = 0  # Track the number of iterations
     bound = min(manhattan_distance(marker, goal) for goal in goals)
     yellow_square = create_yellow_square(canvas, marker[0], marker[1], cell_size)
+    highlighted_nodes = []
+    remaining_goals = set(goals)
     
     while remaining_goals:
         path = [marker]
         t, result = search(path, 0, bound)
         if result:
             full_path.extend(result)
-            remaining_goals.remove(result[-1])
+            if result[-1] in remaining_goals:  # Check if the goal is in remaining_goals
+                remaining_goals.remove(result[-1])
             directions.extend(convert_path_to_directions(result))
             node_count += len(result)
             marker = result[-1]  # Reset starting point to the last goal found
-            if not find_multiple_paths:
-                break
-        if t == float('inf'):
-            break  # No solution found within the current bound
-        bound = t  # Increase the bound for the next iteration
 
-    highlight_final_path(canvas, full_path, goals, cell_size)
+            # Highlight the path to the current goal
+            for node in result:
+                rect_id = canvas.create_rectangle(
+                    node[0] * cell_size, node[1] * cell_size,
+                    (node[0] + 1) * cell_size, (node[1] + 1) * cell_size,
+                    fill="lightgray", outline="black"
+                )
+                highlighted_nodes.append(rect_id)
+                move_yellow_square(canvas, yellow_square, node[0], node[1], cell_size)
+            canvas.update()
+            time.sleep(0.05)
+
+            if not find_multiple_paths:
+                break  # Stop after finding the first goal if not finding multiple paths
+            if iterations > 1000:
+                break
+        else:
+            bound = t
+
+    directions = convert_path_to_directions(full_path)
     return full_path, node_count, directions, {}, steps, iterations
 
 

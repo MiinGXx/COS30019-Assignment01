@@ -45,39 +45,26 @@ def parse_input_file(input_file):
 
 def main():
     if len(sys.argv) < 3:
-        print("Usage: python script.py <input_file> <method> [weight] [multiple]")
+        print("Usage: python script.py <input_file> <method> [multiple]")
         sys.exit(1)
 
     input_file = sys.argv[1]
     method = sys.argv[2].upper()
 
-    # Handle optional arguments based on the method chosen
-    weight = None
+    # Handle optional argument for finding multiple goals
     find_multiple_paths = False
-
-    if method == "WAS":
-        if len(sys.argv) < 4:
-            print("Error: Weighted A* requires a weight as the third argument.")
-            sys.exit(1)
-        try:
-            weight = float(sys.argv[3])
-        except ValueError:
-            print("Error: Weight must be a numeric value.")
-            sys.exit(1)
-
-        # Check for the optional 'multiple' argument for finding multiple goals
-        if len(sys.argv) == 5 and sys.argv[4].lower() == "multiple":
-            find_multiple_paths = True
-
-    elif len(sys.argv) == 4 and sys.argv[3].lower() == "multiple":
+    if len(sys.argv) == 4 and sys.argv[3].lower() == "multiple":
         find_multiple_paths = True
+    else:
+        if len(sys.argv) == 4:
+            print("Warning: Ignoring unknown argument. Use 'multiple' to find multiple paths.")
+            sys.exit(1)
 
     # Parse the input file
     rows, cols, marker, goals, walls = parse_input_file(input_file)
 
     # Create and display the grid in the GUI with the option for multiple paths
-    print(f"Selected Map Input: {input_file}")
-    create_grid_window(rows, cols, marker, goals, walls, method, weight, find_multiple_paths)
+    create_grid_window(rows, cols, marker, goals, walls, method, find_multiple_paths=find_multiple_paths, input_file=input_file)
 
 if __name__ == "__main__":
     main()

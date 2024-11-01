@@ -2,7 +2,7 @@ import tkinter as tk
 from grid import create_grid, create_yellow_square, animate_path, highlight_final_path
 from searchstrategy import dfs, bfs, gbfs, a_star, iddfs, ida_star
 
-def create_grid_window(rows, cols, marker, goals, walls, method, weight=None, find_multiple_paths=False, cell_size=30):
+def create_grid_window(rows, cols, marker, goals, walls, method, weight=None, find_multiple_paths=False, cell_size=30, input_file=None):
     window = tk.Tk()
     window.title("Grid Visualization")
 
@@ -59,6 +59,7 @@ def create_grid_window(rows, cols, marker, goals, walls, method, weight=None, fi
                 path, node_count, directions, visited, steps = result
     
             # Output for finding goals
+            print(f"Selected Map Input: {input_file}")
             full_method_name = method_full_names.get(method, method)
             print(f"Search Strategy: {full_method_name}")
             if find_multiple_paths:
@@ -70,6 +71,7 @@ def create_grid_window(rows, cols, marker, goals, walls, method, weight=None, fi
             print(f"Number of Nodes Visited: {node_count}")
             print(f"Path to Goal(s): {', '.join(directions)}")
 
+            output_text.insert(tk.END, f"Selected Map Input: {input_file}\n")
             output_text.insert(tk.END, f"Search Strategy: {full_method_name}\n")
             if find_multiple_paths:
                 output_text.insert(tk.END, f"Goals Found: {', '.join(map(str, goals))}\n")
@@ -86,6 +88,7 @@ def create_grid_window(rows, cols, marker, goals, walls, method, weight=None, fi
     
         else:
             output_text.insert(tk.END, "No path found.\n")
+            print("No path found.")
     
         output_text.config(state=tk.DISABLED)
 
