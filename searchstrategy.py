@@ -82,7 +82,6 @@ def dfs(marker, goals, walls, rows, cols, canvas, cell_size, find_multiple_paths
         else:
             # If stack is empty and goals remain, but no path is found
             if remaining_goals:
-                print("No path found to remaining goals.")
                 directions = convert_path_to_directions(full_path)
                 return full_path, node_count, directions, parent, steps
 
