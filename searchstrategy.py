@@ -428,89 +428,69 @@ def dls(node, goals, walls, rows, cols, depth_limit, canvas, cell_size, find_mul
     canvas.delete(yellow_square)
     return None, None, steps, remaining_goals, highlighted_nodes  # Goal not found within depth limit
 
+import heapq
+import time
+from grid import create_yellow_square, move_yellow_square, highlight_final_path
 
-
-def weighted_astar(marker, goals, walls, rows, cols, canvas, cell_size, weight, find_multiple_paths=False):
-    open_list = []
-    heapq.heappush(open_list, (0, marker))  # Initialize with starting node
-    came_from = {marker: None}
-    g_score = {marker: 0}
-    f_score = {marker: weight * min(manhattan_distance(marker, goal) for goal in goals)}
-    node_count = 0
-    visited = set()
-    steps = []
-    full_path = []
-    remaining_goals = set(goals)
-    yellow_square = create_yellow_square(canvas, marker[0], marker[1], cell_size)
-    highlighted_nodes = []
-
-    while open_list and remaining_goals:
-        _, current = heapq.heappop(open_list)
-
-        if current in visited:
-            continue
-        visited.add(current)
-        node_count += 1
-        steps.append(('move', current))
-
-        # Move yellow square and highlight visited node in light gray
-        rect_id = canvas.create_rectangle(current[0] * cell_size, current[1] * cell_size,
-                                          (current[0] + 1) * cell_size, (current[1] + 1) * cell_size,
-                                          fill="lightgray", outline="black")
-        highlighted_nodes.append(rect_id)
-        move_yellow_square(canvas, yellow_square, current[0], current[1], cell_size)
-        canvas.update()
-        time.sleep(0.01)
-
-        # Goal check
+def ida_star(marker, goals, walls, rows, cols, canvas, cell_size, find_multiple_paths=False):
+    def search(path, g, bound):
+        nonlocal iterations
+        iterations += 1  # Increment iteration count for each recursive call
+        current = path[-1]
+        h = min(manhattan_distance(current, goal) for goal in remaining_goals)
+        f = g + h  # Total cost f = g + h
+        if f > bound:
+            return f, None
         if current in remaining_goals:
-            remaining_goals.remove(current)
-            goal_path = reconstruct_path(came_from, current)
-            full_path.extend(goal_path)
-            canvas.delete(yellow_square)
-
-            # Highlight the completed path segment to the current goal in blue
-            highlight_final_path(canvas, full_path, goals)
-
-            # Clear all highlights if there are remaining goals
-            if remaining_goals:
-                for node_id in highlighted_nodes:
-                    canvas.delete(node_id)
-                highlighted_nodes.clear()
-                open_list = [(0, current)]
-                visited = set()
-                came_from = {current: None}
-                g_score = {current: 0}
-                f_score = {current: weight * min(manhattan_distance(current, goal) for goal in remaining_goals)}
-                yellow_square = create_yellow_square(canvas, current[0], current[1], cell_size)
-
-            # If all goals are reached or find_multiple_paths=False, end the search
-            if not find_multiple_paths or not remaining_goals:
-                if not remaining_goals:
-                    highlight_final_path(canvas, full_path, goals)  # Highlight the final path
-                directions = convert_path_to_directions(full_path)
-                return full_path, node_count, directions, came_from, steps
-
-        # Expand neighbors based on weighted cost
-        neighbors = get_neighbors(current, walls, rows, cols)
-        for neighbor in neighbors:
-            tentative_g_score = g_score[current] + 1
-            if neighbor not in g_score or tentative_g_score < g_score[neighbor]:
-                came_from[neighbor] = current
-                g_score[neighbor] = tentative_g_score
-                f_score[neighbor] = g_score[neighbor] + weight * min(manhattan_distance(neighbor, goal) for goal in remaining_goals)
-                heapq.heappush(open_list, (f_score[neighbor], neighbor))
-                # Highlight expanded node in light green
-                rect_id = canvas.create_rectangle(neighbor[0] * cell_size, neighbor[1] * cell_size,
-                                                  (neighbor[0] + 1) * cell_size, (neighbor[1] + 1) * cell_size,
-                                                  fill="lightgreen", outline="black")
-                highlighted_nodes.append(rect_id)
+            return bound, path
+        min_bound = float('inf')
+        for neighbor in get_neighbors(current, walls, rows, cols):
+            if neighbor not in path:
+                path.append(neighbor)
+                
+                # Visualization of the expanded node
+                canvas.create_rectangle(neighbor[0] * cell_size, neighbor[1] * cell_size,
+                                        (neighbor[0] + 1) * cell_size, (neighbor[1] + 1) * cell_size,
+                                        fill="lightgreen", outline="black")
+                move_yellow_square(canvas, yellow_square, neighbor[0], neighbor[1], cell_size)
                 canvas.update()
                 time.sleep(0.01)
+                
+                t, result = search(path, g + 1, bound)
+                if result:
+                    return t, result
+                if t < min_bound:
+                    min_bound = t
+                path.pop()  # Backtrack
+        return min_bound, None
 
-    # If all goals are found, return the full path and other details
-    directions = convert_path_to_directions(full_path)
-    return full_path, node_count, directions, visited, steps
+    full_path = []
+    remaining_goals = set(goals)
+    steps = []
+    node_count = 0
+    directions = []
+    iterations = 0  # Track the number of iterations
+    bound = min(manhattan_distance(marker, goal) for goal in goals)
+    yellow_square = create_yellow_square(canvas, marker[0], marker[1], cell_size)
+    
+    while remaining_goals:
+        path = [marker]
+        t, result = search(path, 0, bound)
+        if result:
+            full_path.extend(result)
+            remaining_goals.remove(result[-1])
+            directions.extend(convert_path_to_directions(result))
+            node_count += len(result)
+            marker = result[-1]  # Reset starting point to the last goal found
+            if not find_multiple_paths:
+                break
+        if t == float('inf'):
+            break  # No solution found within the current bound
+        bound = t  # Increase the bound for the next iteration
+
+    highlight_final_path(canvas, full_path, goals, cell_size)
+    return full_path, node_count, directions, {}, steps, iterations
+
 
 # Helper Functions
 def reconstruct_path(came_from, current):

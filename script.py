@@ -76,6 +76,7 @@ def main():
     rows, cols, marker, goals, walls = parse_input_file(input_file)
 
     # Create and display the grid in the GUI with the option for multiple paths
+    print(f"Selected Map Input: {input_file}")
     create_grid_window(rows, cols, marker, goals, walls, method, weight, find_multiple_paths)
 
 if __name__ == "__main__":

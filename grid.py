@@ -1,6 +1,6 @@
 def create_grid(canvas, rows, cols, markers=[], goals=[], walls=[]):
     """Create a grid with the specified number of rows and columns."""
-    cell_size = 50  # Size of each cell in the grid
+    cell_size = 30  # Size of each cell in the grid
 
     # Draw the grid
     for row in range(rows):
